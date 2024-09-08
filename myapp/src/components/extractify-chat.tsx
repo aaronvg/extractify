@@ -1,291 +1,189 @@
 'use client'
 
-import React, { useState, useRef, useCallback, useEffect } from 'react'
-import ReactDOM from 'react-dom/client'
+import React, { useState, useRef, useCallback } from 'react'
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { FileIcon, Upload, X, Send, Mic, Music, FileText, FileImage, File } from 'lucide-react'
-import PdfToImageConverter from "@/components/PdfToImageConverter"
-import XlsToImageConverter from "@/components/XlsToImageConverter"
-import DocxToImageConverter from "@/components/DocxToImageConverter"
-
-const suggestions = [
-  "Extract all the text content from the uploaded file and summarize it in bullet points.",
-  "Analyze the sentiment of the document and provide a brief explanation of the overall tone.",
-  "Identify and list the top 5 most frequently occurring keywords in the document.",
-  "Generate a concise abstract of the document, highlighting its main ideas and conclusions.",
-]
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { ChevronRight, ChevronLeft, Upload, X, Send, FileText, File, Mic } from 'lucide-react'
 
 export function ExtractifyChat() {
-  const [files, setFiles] = useState<File[]>([])
+  const [file, setFile] = useState<File | null>(null)
   const [input, setInput] = useState('')
-  const [dragActive, setDragActive] = useState(false)
+  const [isPreviewOpen, setIsPreviewOpen] = useState(true)
+  const [messages, setMessages] = useState<{ text: string; schema: string; data: string }[]>([])
   const [isRecording, setIsRecording] = useState(false)
-  const [messages, setMessages] = useState<{ text: string; files: string[] }[]>([])
+  const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const audioInputRef = useRef<HTMLInputElement>(null)
-  const [convertedFiles, setConvertedFiles] = useState<{ [key: string]: string }>({})
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    setDragActive(e.type === "dragenter" || e.type === "dragover")
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setIsDragging(true)
+    } else if (e.type === "dragleave") {
+      setIsDragging(false)
+    }
   }, [])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    setDragActive(false)
+    setIsDragging(false)
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFiles(e.dataTransfer.files)
+      setFile(e.dataTransfer.files[0])
     }
   }, [])
 
-  const handleFiles = async (newFiles: FileList) => {
-    const addedFiles = Array.from(newFiles)
-    setFiles(prevFiles => [...prevFiles, ...addedFiles])
-
-    for (const file of addedFiles) {
-      if (file.type === 'application/pdf' || 
-          file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-          file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-        const fileUrl = URL.createObjectURL(file)
-        let convertedImage: string | null = null
-
-        if (file.type === 'application/pdf') {
-          convertedImage = await convertPdfToImage(fileUrl)
-        } else if (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
-          convertedImage = await convertXlsToImage(fileUrl)
-        } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-          convertedImage = await convertDocxToImage(fileUrl)
-        }
-
-        if (convertedImage) {
-          setConvertedFiles(prev => ({ ...prev, [file.name]: convertedImage }))
-        }
-      }
-    }
-  }
-
-  const convertPdfToImage = async (pdfUrl: string): Promise<string | null> => {
-    return new Promise((resolve) => {
-      const converter = document.createElement('div')
-      document.body.appendChild(converter)
-      const root = ReactDOM.createRoot(converter)
-      root.render(
-        <PdfToImageConverter pdfUrl={pdfUrl} onConversionComplete={(imageUrl) => {
-          root.unmount()
-          document.body.removeChild(converter)
-          resolve(imageUrl)
-        }} />
-      )
-    })
-  }
-
-  const convertXlsToImage = async (xlsUrl: string): Promise<string | null> => {
-    return new Promise((resolve) => {
-      const converter = document.createElement('div')
-      document.body.appendChild(converter)
-      const root = ReactDOM.createRoot(converter)
-      root.render(
-        <XlsToImageConverter xlsUrl={xlsUrl} onConversionComplete={(imageUrl) => {
-          root.unmount()
-          document.body.removeChild(converter)
-          resolve(imageUrl)
-        }} />
-      )
-    })
-  }
-
-  const convertDocxToImage = async (docxUrl: string): Promise<string | null> => {
-    return new Promise((resolve) => {
-      const converter = document.createElement('div')
-      document.body.appendChild(converter)
-      const root = ReactDOM.createRoot(converter)
-      root.render(
-        <DocxToImageConverter docxUrl={docxUrl} onConversionComplete={(imageUrl) => {
-          root.unmount()
-          document.body.removeChild(converter)
-          resolve(imageUrl)
-        }} />
-      )
-    })
-  }
-
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      handleFiles(e.target.files)
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0])
     }
   }
 
-  const removeFile = (fileToRemove: File) => {
-    setFiles(files.filter(file => file !== fileToRemove))
+  const removeFile = () => {
+    setFile(null)
   }
 
   const handleExtract = () => {
-    if (input.trim() || files.length > 0) {
-      setMessages(prev => [...prev, { text: input, files: files.map(f => f.name) }])
+    if (input.trim() || file) {
+      const schema = `{
+  "type": "object",
+  "properties": {
+    "name": { "type": "string" },
+    "age": { "type": "number" },
+    "city": { "type": "string" }
+  },
+  "required": ["name", "age"]
+}`
+      const data = `{
+  "name": "John Doe",
+  "age": 30,
+  "city": "New York"
+}`
+      setMessages(prev => [...prev, { text: input, schema, data }])
       setInput('')
-      setFiles([])
     }
+  }
+
+  const togglePreview = () => {
+    setIsPreviewOpen(!isPreviewOpen)
   }
 
   const handleVoiceInput = () => {
-    setIsRecording(true)
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream => {
-        const mediaRecorder = new MediaRecorder(stream)
-        const audioChunks: BlobPart[] = []
-
-        mediaRecorder.addEventListener("dataavailable", event => {
-          audioChunks.push(event.data)
-        })
-
-        mediaRecorder.addEventListener("stop", () => {
-          const audioBlob = new Blob(audioChunks, { type: 'audio/wav' })
-          const audioFile = new File([audioBlob], "voice-input.wav", { type: 'audio/wav' })
-          setFiles(prevFiles => [...prevFiles, audioFile])
-          setIsRecording(false)
-        })
-
-        mediaRecorder.start()
-
-        setTimeout(() => {
-          mediaRecorder.stop()
-          stream.getTracks().forEach(track => track.stop())
-        }, 5000) // Stop recording after 5 seconds
-      })
-      .catch(error => {
-        console.error("Error accessing microphone:", error)
-        setIsRecording(false)
-      })
-  }
-
-  const getFileIcon = (file: File) => {
-    if (file.type.startsWith('image/') || convertedFiles[file.name]) {
-      return <FileImage className="w-5 h-5" />
-    }
-    if (file.type.startsWith('audio/')) return <Music className="w-5 h-5" />
-    if (file.type.startsWith('video/')) return <FileIcon className="w-5 h-5" />
-    return <FileText className="w-5 h-5" />
-  }
-
-  const renderFilePreview = (file: File) => {
-    if (file.type.startsWith('image/') || convertedFiles[file.name]) {
-      return (
-        <img
-          src={convertedFiles[file.name] || URL.createObjectURL(file)}
-          alt={file.name}
-          className="max-w-full max-h-full object-contain"
-        />
-      )
-    } else if (file.type.startsWith('audio/')) {
-      return (
-        <audio controls className="w-full max-w-[90%]">
-          <source src={URL.createObjectURL(file)} type={file.type} />
-          Your browser does not support the audio element.
-        </audio>
-      )
-    } else {
-      return (
-        <div className="text-center text-gray-400">
-          <File className="w-16 h-16 mx-auto mb-4" />
-          <p className="text-sm">Preview not available</p>
-        </div>
-      )
-    }
+    setIsRecording(!isRecording)
+    // Implement voice input logic here
   }
 
   return (
     <div 
-      className="flex flex-col h-screen bg-gray-50 text-gray-900 relative"
+      className="flex h-screen bg-gray-50 text-gray-900 relative"
       onDragEnter={handleDrag}
       onDragLeave={handleDrag}
       onDragOver={handleDrag}
       onDrop={handleDrop}
     >
-      <div className={`flex-1 overflow-auto p-4 transition-opacity duration-300 ${dragActive ? 'opacity-0' : 'opacity-100'}`}>
-        {messages.map((message, index) => (
-          <div key={index} className="mb-4 bg-white rounded-lg p-3 shadow-sm">
-            <p className="mb-2">{message.text}</p>
-            {message.files.length > 0 && (
-              <div className="text-sm text-gray-500">
-                Files: {message.files.join(', ')}
-              </div>
-            )}
+      {isDragging && (
+        <div className="absolute inset-0 bg-blue-100 bg-opacity-90 flex items-center justify-center z-50">
+          <div className="text-center text-blue-500">
+            <Upload className="mx-auto h-16 w-16 mb-4" />
+            <p className="text-2xl font-medium">Drop files here</p>
+            <p className="text-sm mt-2">100mb limit</p>
           </div>
-        ))}
-      </div>
-      <div className={`border-t border-gray-200 p-4 bg-white transition-opacity duration-300 ${dragActive ? 'opacity-0' : 'opacity-100'}`}>
-        {files.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-2">
-            {files.map((file, index) => (
-              <HoverCard key={index}>
-                <HoverCardTrigger asChild>
-                  <div className="relative flex items-center bg-gray-100 rounded-lg w-64 h-12 group p-2">
-                    <div className="flex items-center overflow-hidden flex-1 mr-2">
-                      <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-gray-200 rounded">
-                        {getFileIcon(file)}
-                      </div>
-                      <span className="ml-2 text-sm truncate text-gray-700 flex-1">{file.name}</span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="flex-shrink-0 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-gray-700"
-                      onClick={() => removeFile(file)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </HoverCardTrigger>
-                <HoverCardContent className="w-80 p-0 overflow-hidden bg-white shadow-lg rounded-lg border-none">
-                  <div className="p-4 border-b border-gray-100">
-                    <h3 className="font-semibold truncate text-gray-900">{file.name}</h3>
-                    <p className="text-sm text-gray-500">
-                      {file.type || 'Unknown'} - {(file.size / 1024).toFixed(2)} KB
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-center h-64 bg-gray-50">
-                    {renderFilePreview(file)}
-                  </div>
-                </HoverCardContent>
-              </HoverCard>
-            ))}
-          </div>
-        )}
-        <div className="relative">
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Enter extraction instructions..."
-            className="pr-24 resize-none bg-gray-50 border-gray-200 min-h-[100px] text-gray-900"
-          />
-          <div className="absolute right-2 bottom-2 flex space-x-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => fileInputRef.current?.click()}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <Upload className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleVoiceInput}
-              className={`text-gray-500 hover:text-gray-700 ${isRecording ? 'bg-red-100' : ''}`}
-            >
-              <Mic className="h-5 w-5" />
-            </Button>
-            <Button onClick={handleExtract} className="bg-blue-500 text-white hover:bg-blue-600">
-              Extract
-            </Button>
+        </div>
+      )}
+      <div className={`flex-1 flex flex-col ${isPreviewOpen && file ? 'mr-[45%]' : ''} transition-all duration-300`}>
+        <ScrollArea className="flex-1 p-4">
+          {messages.map((message, index) => (
+            <div key={index} className="mb-4 bg-white rounded-lg p-3 shadow-sm">
+              <p className="mb-2">{message.text}</p>
+              <Tabs defaultValue="schema" className="w-full">
+                <TabsList>
+                  <TabsTrigger value="schema">JSON Schema</TabsTrigger>
+                  <TabsTrigger value="data">JSON Data</TabsTrigger>
+                </TabsList>
+                <TabsContent value="schema">
+                  <pre className="bg-gray-100 p-2 rounded overflow-x-auto"><code>{message.schema}</code></pre>
+                </TabsContent>
+                <TabsContent value="data">
+                  <pre className="bg-gray-100 p-2 rounded overflow-x-auto"><code>{message.data}</code></pre>
+                </TabsContent>
+              </Tabs>
+            </div>
+          ))}
+        </ScrollArea>
+        <div className="border-t border-gray-200 p-4 bg-white">
+          <div className="relative">
+            <Textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Enter extraction instructions..."
+              className="pr-24 resize-none bg-gray-50 border-gray-200 min-h-[100px] text-gray-900 w-full"
+            />
+            <div className="absolute right-2 bottom-2 flex space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <Upload className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleVoiceInput}
+                className={`text-gray-500 hover:text-gray-700 ${isRecording ? 'bg-red-100' : ''}`}
+              >
+                <Mic className="h-5 w-5" />
+              </Button>
+              <Button onClick={handleExtract} className="bg-blue-500 text-white hover:bg-blue-600">
+                Extract
+              </Button>
+            </div>
           </div>
         </div>
       </div>
-      {files.length === 0 && !dragActive && (
+      {file && (
+        <div className={`fixed right-0 top-0 h-full bg-white border-l border-gray-200 transition-all duration-300 ${isPreviewOpen ? 'w-[45%]' : 'w-0'}`}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={togglePreview}
+            className="absolute -left-10 top-1/2 transform -translate-y-1/2 bg-white border border-gray-200 rounded-full p-2"
+          >
+            {isPreviewOpen ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
+          {isPreviewOpen && (
+            <div className="p-4 h-full flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">File Preview</h3>
+                <Button variant="ghost" size="icon" onClick={removeFile}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <ScrollArea className="flex-grow border rounded-lg">
+                <div className="p-4 min-h-full flex items-center justify-center">
+                  {file.type.startsWith('image/') ? (
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={file.name}
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  ) : (
+                    <div className="text-center text-gray-400">
+                      <File className="w-16 h-16 mx-auto mb-4" />
+                      <p className="text-sm">{file.name}</p>
+                      <p className="text-xs mt-2">{(file.size / 1024).toFixed(2)} KB</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
+        </div>
+      )}
+      {!file && !isDragging && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center">
             <Button
@@ -297,50 +195,16 @@ export function ExtractifyChat() {
               <Upload className="h-12 w-12 mb-2" />
               <span className="sr-only">Upload file</span>
             </Button>
-            <p className="text-lg font-medium text-gray-500">Drag or upload files to start!</p>
-            <p className="text-sm mt-2 text-gray-400">100mb limit</p>
-          </div>
-        </div>
-      )}
-      {files.length > 0 && !dragActive && (
-        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-center space-y-2 pointer-events-none">
-          <div className="max-w-2xl w-full pointer-events-auto">
-            {suggestions.map((suggestion, index) => (
-              <Button
-                key={index}
-                variant="ghost"
-                className="w-full justify-start text-left text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 mb-2 p-3 rounded-lg transition-colors"
-                onClick={() => setInput(suggestion)}
-              >
-                {suggestion}
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
-      {dragActive && (
-        <div className="absolute inset-0 bg-blue-500/10 flex items-center justify-center z-50">
-          <div className="text-center text-blue-500">
-            <Upload className="mx-auto h-16 w-16 mb-4" />
-            <p className="text-2xl font-medium">Drop files here</p>
-            <p className="text-sm mt-2">100mb limit</p>
+            <p className="text-lg font-medium text-gray-500">Drag or Upload files to Start!</p>
+            <p className="text-sm mt-2 text-gray-400">upload your own, or try one of these.</p>
           </div>
         </div>
       )}
       <input
         type="file"
-        multiple
         onChange={handleFileInput}
         className="hidden"
         ref={fileInputRef}
-      />
-      <input
-        type="file"
-        accept="audio/*"
-        capture="user"
-        onChange={handleFileInput}
-        className="hidden"
-        ref={audioInputRef}
       />
     </div>
   )

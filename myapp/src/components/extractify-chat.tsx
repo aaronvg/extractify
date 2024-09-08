@@ -385,7 +385,7 @@ export function ExtractifyChat() {
       )}
       <div
         className={`flex-1 flex flex-col ${
-          isPreviewOpen && file ? "mr-[45%]" : ""
+          isPreviewOpen && file ? "mr-[55%]" : ""
         } transition-all duration-300`}
       >
         <ScrollArea className="flex-1 p-4 flex flex-col">
@@ -459,7 +459,7 @@ export function ExtractifyChat() {
       {file && (
         <div
           className={`fixed right-0 top-0 h-full bg-white border-l border-gray-200 transition-all duration-300 ${
-            isPreviewOpen ? "w-[45%]" : "w-0"
+            isPreviewOpen ? "w-[55%]" : "w-0"
           }`}
         >
           <Button

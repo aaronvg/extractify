@@ -14,11 +14,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CodeMirrorViewer } from "./BAMLPreview";
+import JotaiProvider from "@/components/Jotai";
 
 export default function Home() {
   return (
+    <JotaiProvider>
     <div className="w-screen h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <ExtractifyChat />
     </div>
+    </JotaiProvider>
   )
 }

@@ -1,6 +1,7 @@
-import { atom } from "jotai";
+import { atom, useSetAtom } from "jotai";
 import { unwrap } from "jotai/utils";
 import React, { useEffect, useRef, type PropsWithChildren } from "react";
+
 
 import { BAML, theme } from "@boundaryml/baml-lezer";
 import CodeMirror, {
@@ -10,14 +11,8 @@ import CodeMirror, {
   ReactCodeMirrorRef,
 } from "@uiw/react-codemirror";
 import { type Diagnostic, linter } from "@codemirror/lint";
-import { atomStore, diagnosticsAtom, filesAtom } from "./atoms";
-
-const wasmAtomAsync = atom(async () => {
-  const wasm = await import("@gloo-ai/baml-schema-wasm-web/baml_schema_build");
-  return wasm;
-});
-
-export const wasmAtom = unwrap(wasmAtomAsync);
+import {   diagnosticsAtom } from "./atoms";
+import { atomStore } from "@/components/Jotai";
 
 // TODO: need to wire up diagnostics to runtime.
 function makeLinter() {
@@ -47,6 +42,8 @@ function makeLinter() {
     { delay: 200 }
   );
 }
+
+
 
 const comparment = new Compartment();
 const extensions: Extension[] = [

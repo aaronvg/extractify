@@ -11,6 +11,9 @@ import { CodeMirrorViewer } from "@/app/BAMLPreview";
 import { unstable_noStore } from "next/cache";
 import { ClipLoader } from "react-spinners";
 import JSONGrid from "@redheadphone/react-json-grid";
+import { useSetAtom } from "jotai";
+import { filesAtom } from "@/app/atoms";
+
 
 const ExtractifyComponent: React.FC<{
   content: string;
@@ -19,6 +22,7 @@ const ExtractifyComponent: React.FC<{
   const [runAllError, setRunAllError] = useState<string | undefined>(undefined);
   const [bamlCode, setBamlCode] = useState<string>(bamlBoilerPlate);
   const [activeTab, setActiveTab] = useState<string>("schema");
+  const setFileAtom = useSetAtom(filesAtom);
 
   const {
     data: dataBaml,
@@ -66,8 +70,10 @@ const ExtractifyComponent: React.FC<{
   useEffect(() => {
     if (dataBaml) {
       setBamlCode(bamlBoilerPlate + dataBaml);
+      setFileAtom(bamlBoilerPlate + dataBaml);
     } else if (partialDataBaml) {
       setBamlCode(bamlBoilerPlate + partialDataBaml);
+      setFileAtom(bamlBoilerPlate + partialDataBaml);
     }
   }, [dataBaml, partialDataBaml]);
 
@@ -91,7 +97,7 @@ const ExtractifyComponent: React.FC<{
             {isLoadingJson && !(isCompleteJson || isErrorJson) ? (
               <ClipLoader size={12} />
             ) : (
-              "🤯"
+              isCompleteJson ? "🤯" : ""
             )}{" "}
             Extractify!
           </TabsTrigger>
@@ -100,20 +106,27 @@ const ExtractifyComponent: React.FC<{
           <CodeMirrorViewer
             lang="baml"
             file_content={bamlCode}
-            onChange={isCompleteBaml || isErrorBaml ? setBamlCode : () => {}}
+            onChange={isCompleteBaml || isErrorBaml ? setBamlCode : () => { }}
             shouldScrollDown={!isCompleteBaml && !isErrorBaml}
           />
         </TabsContent>
         <TabsContent value="data">
           <div className="demo-container w-full">
-            {!isCompleteJson ? (
-              <p>Extracting data using schema...</p>
+            {isLoadingJson && !(isCompleteJson || isErrorJson) ? (
+              <><p>Extracting data using schema...</p>
+                {partialDataJson && (<JSONGrid
+                  className="text-sm"
+                  theme="defaultLight"
+                  defaultExpandDepth={10}
+                  data={partialDataJson}
+                />)}
+              </>
             ) : (
               <JSONGrid
                 className="text-sm"
                 theme="defaultLight"
                 defaultExpandDepth={10}
-                data={isCompleteJson ? dataJson : partialDataJson ?? {}}
+                data={dataJson ?? {}}
               />
             )}
           </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect, DragEvent } from 'react'
 import ReactDOM from 'react-dom/client'
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import DocxToImageConverter from "@/components/DocxToImageConverter"
 import ExtractifyComponent from './ExtractifyComponent'
 import Header from "@/components/Header"
 import exampleFiles from '@/examples'
+import { ExampleFile } from '../types/file-types'
 
 const getSuggestions = (fileType: string) => {
   switch (fileType) {
@@ -73,25 +74,64 @@ export function ExtractifyChat() {
   const [isConverting, setIsConverting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedFile, setSelectedFile] = useState<ExampleFile | null>(null)
+  const [isListening, setIsListening] = useState(false)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
 
-  const handleDrag = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setIsDragging(true)
-    } else if (e.type === "dragleave") {
-      setIsDragging(false)
+  useEffect(() => {
+    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+      recognitionRef.current = new SpeechRecognition()
+      recognitionRef.current.continuous = true
+      recognitionRef.current.interimResults = true
+
+      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+        const transcript = Array.from(event.results)
+          .map(result => result[0].transcript)
+          .join('')
+        setInput(transcript)
+      }
     }
   }, [])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  useEffect(() => {
+    if (isListening) {
+      recognitionRef.current?.start()
+    } else {
+      recognitionRef.current?.stop()
+    }
+  }, [isListening])
+
+  const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true)
+    }
+  }
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
     setIsDragging(false)
+  }
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFile(e.dataTransfer.files[0])
+      const file = e.dataTransfer.files[0]
+      // Handle the dropped file
+      // You might want to create an ExampleFile object here
+      // setSelectedFile(...)
     }
-  }, [])
+  }
 
   const convertFile = async (file: File): Promise<string | null> => {
     const fileUrl = URL.createObjectURL(file)
@@ -246,9 +286,9 @@ export function ExtractifyChat() {
   return (
     <div 
       className="flex flex-col h-screen bg-gray-50 text-gray-900 relative"
-      onDragEnter={handleDrag}
-      onDragLeave={handleDrag}
-      onDragOver={handleDrag}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
       <Header onFileSelect={handleFileSelect} selectedFile={selectedFile} />
@@ -292,7 +332,9 @@ export function ExtractifyChat() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Enter extraction instructions..."
-                className="pr-24 resize-none bg-gray-50 border-gray-200 min-h-[150px] text-gray-900 w-full"
+                className="pr-24 resize-none bg-gray-50 border-gray-200 min-h-[150px] text-gray-900 w-full text-base"
+                onFocus={() => setIsListening(true)}
+                onBlur={() => setIsListening(false)}
               />
               <div className="absolute right-2 bottom-2 flex space-x-2">
                 <Button

@@ -1,11 +1,10 @@
 'use client'
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { pdfjs } from 'react-pdf';
 
 // Set the worker source to a CDN URL
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-
 
 async function convertPdfPageToImage(pdfUrl: string, pageNumber = 1) {
     try {
@@ -34,29 +33,20 @@ async function convertPdfPageToImage(pdfUrl: string, pageNumber = 1) {
 
 interface PdfToImageConverterProps {
     pdfUrl: string;
+    onConversionComplete: (imageUrl: string | null) => void;
 }
 
-function PdfToImageConverter({ pdfUrl }: PdfToImageConverterProps) {
-    const [imageUrl, setImageUrl] = useState<string | null>(null);
-
-    useEffect(() => {
+function PdfToImageConverter({ pdfUrl, onConversionComplete }: PdfToImageConverterProps) {
+    React.useEffect(() => {
         async function convertPdf() {
             const image = await convertPdfPageToImage(pdfUrl);
-            setImageUrl(image);
+            onConversionComplete(image);
         }
 
         convertPdf();
-    }, [pdfUrl]);
+    }, [pdfUrl, onConversionComplete]);
 
-    return (
-        <div>
-            {imageUrl ? (
-                <img src={imageUrl} alt="Converted PDF page" />
-            ) : (
-                <p>Converting PDF to image...</p>
-            )}
-        </div>
-    );
+    return null;
 }
 
 export default PdfToImageConverter;

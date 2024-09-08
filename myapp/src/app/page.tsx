@@ -23,10 +23,14 @@ export default function Home() {
 import { useState, useCallback, useEffect } from 'react';
 import { WideCardFileUpload } from "@/components/wide-card-file-upload";
 import PdfToImageConverter from "@/components/PdfToImageConverter";
+import XlsToImageConverter from "@/components/XlsToImageConverter";
+import DocxToImageConverter from "@/components/DocxToImageConverter";
+import AudioPlayer from "@/components/AudioPlayer";
 
 export default function Home() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const handleFileUpload = useCallback((file: File | null) => {
     setUploadedFile(file);
@@ -39,25 +43,31 @@ export default function Home() {
       console.log("File removed");
       setPreviewUrl(null);
       console.log('File uploaded:', file.name, 'Size:', file.size, 'bytes');
-      if (file.type === 'application/pdf') {
-        const url = URL.createObjectURL(file);
-        setPdfUrl(url);
+      const url = URL.createObjectURL(file);
+      setFileUrl(url);
+      if (file.type.startsWith('image/')) {
+        setImageUrl(url);
       } else {
-        setPdfUrl(null);
+        setImageUrl(null);
       }
     } else {
       console.log('File removed');
-      setPdfUrl(null);
+      setFileUrl(null);
+      setImageUrl(null);
     }
+  }, []);
+
+  const handleConversionComplete = useCallback((convertedImageUrl: string | null) => {
+    setImageUrl(convertedImageUrl);
   }, []);
 
   useEffect(() => {
     return () => {
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
+      if (fileUrl) {
+        URL.revokeObjectURL(fileUrl);
       }
     };
-  }, [pdfUrl]);
+  }, [fileUrl]);
 
   return (
     <Provider store={atomStore}>
@@ -68,9 +78,26 @@ export default function Home() {
           File "{uploadedFile.name}" uploaded successfully!
         </p>
       )}
-      {pdfUrl && (
+      {fileUrl && (
         <div className="mt-4">
-          <PdfToImageConverter pdfUrl={pdfUrl} />
+          {uploadedFile?.type === 'application/pdf' && (
+            <PdfToImageConverter pdfUrl={fileUrl} onConversionComplete={handleConversionComplete} />
+          )}
+          {uploadedFile?.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' && (
+            <XlsToImageConverter xlsUrl={fileUrl} onConversionComplete={handleConversionComplete} />
+          )}
+          {uploadedFile?.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' && (
+            <DocxToImageConverter docxUrl={fileUrl} onConversionComplete={handleConversionComplete} />
+          )}
+          {imageUrl ? (
+            <img src={imageUrl} alt="Converted file" style={{ maxWidth: '100%' }} />
+          ) : uploadedFile?.type.startsWith('image/') ? (
+            <img src={fileUrl} alt="Uploaded image" style={{ maxWidth: '100%' }} />
+          ) : uploadedFile?.type.startsWith('audio/') ? (
+            <AudioPlayer audioUrl={fileUrl} />
+          ) : (
+            <p>Converting file to image...</p>
+          )}
         </div>
       )}
     </div>

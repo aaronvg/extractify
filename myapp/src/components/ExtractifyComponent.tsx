@@ -106,7 +106,7 @@ const ExtractifyComponent: React.FC<{
         </TabsContent>
         <TabsContent value="data">
           <div className="demo-container w-full">
-            {isLoadingJson && !isCompleteJson ? (
+            {!isCompleteJson ? (
               <p>Extracting data using schema...</p>
             ) : (
               <JSONGrid

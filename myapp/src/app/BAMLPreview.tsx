@@ -92,7 +92,6 @@ export const CodeMirrorViewer = ({
     // return () => clearInterval(interval); // Clean up the interval on component unmount
   }, [file_content, containerRef, shouldScrollDown]);
 
-  const diagnosticErrors = useAtomValue(diagnosticsAtom);
 
   return (
     <div className="w-full max-h-[700px] h-full overflow-y-auto rounded-md">
@@ -103,9 +102,6 @@ export const CodeMirrorViewer = ({
           width: "100%",
         }}
       >
-        {<div className="text-red-400 font-bold h-8">
-          {diagnosticErrors.length > 0 && <>{diagnosticErrors.length} Errors!</>}
-        </div>}
         <CodeMirror
           key={lang}
           id={lang}

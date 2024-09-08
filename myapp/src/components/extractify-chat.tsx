@@ -14,18 +14,53 @@ import ExtractifyComponent from './ExtractifyComponent'
 import Header from "@/components/Header"
 import exampleFiles from '@/examples'
 
-const suggestions = [
-  "Extract all the text content from the uploaded file and summarize it in bullet points.",
-  "Analyze the sentiment of the document and provide a brief explanation of the overall tone.",
-  "Identify and list the top 5 most frequently occurring keywords in the document.",
-  "Generate a concise abstract of the document, highlighting its main ideas and conclusions.",
-]
-
-interface ExampleFile {
-  name: string;
-  type: string;
-  url: string;
-}
+const getSuggestions = (fileType: string) => {
+  switch (fileType) {
+    case 'application/pdf':
+      return [
+        "Extract all headings and subheadings from the PDF.",
+        "Summarize the main points of each page in bullet points.",
+        "Identify and list any tables or figures in the document.",
+        "Extract all references or citations from the PDF.",
+      ];
+    case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+      return [
+        "Summarize the data in each sheet of the Excel file.",
+        "Identify the top 5 highest values in a specific column.",
+        "Calculate the average, median, and mode for a numerical column.",
+        "Extract all unique values from a specific column.",
+      ];
+    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+      return [
+        "Extract all the text content and summarize it in bullet points.",
+        "Identify and list all formatting styles used in the document.",
+        "Extract all comments and tracked changes in the document.",
+        "List all hyperlinks present in the document.",
+      ];
+    case 'image/jpeg':
+    case 'image/png':
+      return [
+        "Describe the main elements visible in the image.",
+        "Identify any text present in the image.",
+        "Detect and list the colors used in the image.",
+        "Estimate the number of people or objects in the image.",
+      ];
+    case 'audio/mpeg':
+      return [
+        "Transcribe the audio content.",
+        "Identify the main speakers in the audio.",
+        "Summarize the key points discussed in the audio.",
+        "Detect any background noises or music in the audio.",
+      ];
+    default:
+      return [
+        "Extract all the text content from the file and summarize it in bullet points.",
+        "Analyze the sentiment of the content and provide a brief explanation of the overall tone.",
+        "Identify and list the top 5 most frequently occurring keywords in the file.",
+        "Generate a concise abstract of the file's content, highlighting its main ideas and conclusions.",
+      ];
+  }
+};
 
 export function ExtractifyChat() {
   const [file, setFile] = useState<File | null>(null)
@@ -233,56 +268,56 @@ export function ExtractifyChat() {
               content={message.data}
             />
           ))}
-          {messages.length === 0 && file && (
-            <>
-              <div className="flex-grow" />
-              <div className="flex flex-col items-center justify-end">
-                <p className="text-lg font-medium text-gray-500 mb-4">Try one of these suggestions:</p>
-                {suggestions.map((suggestion, index) => (
+        </ScrollArea>
+        {file && (
+          <div className="border-t border-gray-200 p-4">
+            <div className="mb-4">
+              <p className="text-sm font-medium text-gray-500 mb-2">Suggestions:</p>
+              <div className="space-y-2">
+                {getSuggestions(file.type).map((suggestion, index) => (
                   <Button
                     key={index}
-                    variant="ghost"
-                    className="w-full max-w-2xl justify-start text-left text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 mb-2 p-3 rounded-lg transition-colors"
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start text-left text-sm bg-gray-50 hover:bg-gray-100"
                     onClick={() => setInput(suggestion)}
                   >
                     {suggestion}
                   </Button>
                 ))}
               </div>
-            </>
-          )}
-        </ScrollArea>
-        <div className="border-t border-gray-200 p-4 bg-white">
-          <div className="relative">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Enter extraction instructions..."
-              className="pr-24 resize-none bg-gray-50 border-gray-200 min-h-[150px] text-gray-900 w-full"
-            />
-            <div className="absolute right-2 bottom-2 flex space-x-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => fileInputRef.current?.click()}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <Upload className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleVoiceInput}
-                className={`text-gray-500 hover:text-gray-700 ${isRecording ? 'bg-red-100' : ''}`}
-              >
-                <Mic className="h-5 w-5" />
-              </Button>
-              <Button onClick={handleExtract} className="bg-blue-500 text-white hover:bg-blue-600">
-                Extract
-              </Button>
+            </div>
+            <div className="relative">
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Enter extraction instructions..."
+                className="pr-24 resize-none bg-gray-50 border-gray-200 min-h-[150px] text-gray-900 w-full"
+              />
+              <div className="absolute right-2 bottom-2 flex space-x-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <Upload className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleVoiceInput}
+                  className={`text-gray-500 hover:text-gray-700 ${isRecording ? 'bg-red-100' : ''}`}
+                >
+                  <Mic className="h-5 w-5" />
+                </Button>
+                <Button onClick={handleExtract} className="bg-blue-500 text-white hover:bg-blue-600">
+                  Extract
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
       {file && (
         <div className={`fixed right-0 top-0 h-full bg-white border-l border-gray-200 transition-all duration-300 ${isPreviewOpen ? 'w-[45%]' : 'w-0'}`}>

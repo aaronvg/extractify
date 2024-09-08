@@ -158,7 +158,7 @@ export function ExtractifyChat() {
           </div>
         </div>
       )}
-      <div className={`flex-1 flex flex-col-reverse ${isPreviewOpen && file ? 'mr-[45%]' : ''} transition-all duration-300`}>
+      <div className={`flex-1 flex flex-col ${isPreviewOpen && file ? 'mr-[45%]' : ''} transition-all duration-300`}>
         <ScrollArea className="flex-1 p-4">
           {messages.map((message, index) => (
             <ExtractifyComponent key={index} prompt={message.text}

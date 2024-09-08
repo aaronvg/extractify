@@ -1,21 +1,23 @@
-"use client";
 import { useState, useEffect } from "react";
 import { readStreamableValue, StreamableValue } from "ai/rsc";
 
-
-export function useStream<T, P extends any[]>(
-  serverAction: (...args: P) => Promise<{ object: StreamableValue<Partial<T>, any> }>
+/**
+ * A hook that streams data from a server action. The server action must return a StreamableValue.
+ * See the example action in app/actions/streamable_objects.tsx
+ *  **/
+export function useStream<PartialRet, Ret, P extends any[]>(
+  serverAction: (...args: P) => Promise<{ object: StreamableValue<{ partial: PartialRet } | { final: Ret }, any> }>
 ) {
   const [isLoading, setIsLoading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [isError, setIsError] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [partialData, setPartialData] = useState<string | undefined>(undefined); // Initialize data state
-  const [data, setData] = useState<string | undefined>(undefined); // full non-partial data
+  const [partialData, setPartialData] = useState<PartialRet | undefined>(undefined); // Initialize data state
+  const [streamResult, setData] = useState<Ret  | undefined>(undefined); // full non-partial data
 
   const mutate = async (
     ...params: Parameters<typeof serverAction>
-  ): Promise<T | undefined> => {
+  ): Promise<Ret | undefined> => {
     console.log("mutate", params);
     setIsLoading(true);
     setIsError(false);
@@ -25,7 +27,6 @@ export function useStream<T, P extends any[]>(
       const { object } = await serverAction(...params);
       const asyncIterable = readStreamableValue(object);
 
-      let streamedData: Partial<T> | undefined;
       for await (const value of asyncIterable) {
         if (value !== undefined) {
 
@@ -34,16 +35,18 @@ export function useStream<T, P extends any[]>(
           //   options.onData(value as T);
           // }
           console.log("value", value);
-          streamedData = value;
-          setPartialData(streamedData as unknown as string); // Update data state with the latest value
+          if ("partial" in value) {
+            setPartialData(value.partial); // Update data state with the latest value
+          } else if ("final" in value) {
+            setData(value.final); // Update data state with the latest value
+            setIsComplete(true);
+            return value.final;
+          }
         }
       }
 
-
-      setIsComplete(true);
-      setData(streamedData as unknown as string);
-      // If it completes, it means it's the full data.
-      return streamedData as unknown as T;
+      // // If it completes, it means it's the full data.
+      // return streamedData;
     } catch (err) {
       console.log("error", err);
 
@@ -56,5 +59,5 @@ export function useStream<T, P extends any[]>(
   };
 
   // If you use the "data" property, your component will re-render when the data gets updated.
-  return { data, partialData, isLoading, isComplete, isError, error, mutate };
+  return { data: streamResult, partialData, isLoading, isComplete, isError, error, mutate };
 }

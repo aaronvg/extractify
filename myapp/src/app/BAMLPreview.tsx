@@ -2,18 +2,14 @@ import { atom } from "jotai";
 import { unwrap } from "jotai/utils";
 import React, { useRef, type PropsWithChildren } from "react";
 
-import { StreamLanguage } from "@codemirror/language";
 
 import { BAML, theme } from "@boundaryml/baml-lezer";
 import CodeMirror, {
   Compartment,
   EditorView,
   Extension,
-  ReactCodeMirrorRef,
 } from "@uiw/react-codemirror";
 import { type Diagnostic, linter } from "@codemirror/lint";
-import { useEffect, useState } from "react";
-import { useAtom } from "jotai";
 import { atomStore, diagnosticsAtom, filesAtom } from "./atoms";
 
 const wasmAtomAsync = atom(async () => {
@@ -61,12 +57,13 @@ const extensions: Extension[] = [
 
 export const CodeMirrorViewer = ({
   lang,
+  file_content,
+  onChange
 }: {
   lang: string;
-  shouldScrollDown?: boolean;
+  file_content: string
+  onChange?: (value: string) => void;
 }) => {
-  const [file, setFileContent] = useAtom(filesAtom);
-  const containerRef = useRef<ReactCodeMirrorRef | null>({});
   return (
     <div className="w-full max-h-[700px] h-full overflow-y-clip rounded-md">
       <div
@@ -79,12 +76,8 @@ export const CodeMirrorViewer = ({
         <CodeMirror
           key={lang}
           id={lang}
-          value={Object.values(file)[0]}
-          onChange={(value) => {
-            setFileContent({
-              "baml_src/main.baml": value,
-            });
-          }}
+          value={file_content}
+          onChange={onChange}
           extensions={extensions}
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           theme={theme}

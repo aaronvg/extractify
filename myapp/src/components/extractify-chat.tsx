@@ -10,6 +10,7 @@ import { ChevronRight, ChevronLeft, Upload, X, Send, FileText, File, Mic } from 
 import PdfToImageConverter from "@/components/PdfToImageConverter"
 import XlsToImageConverter from "@/components/XlsToImageConverter"
 import DocxToImageConverter from "@/components/DocxToImageConverter"
+import ExtractifyComponent from './ExtractifyComponent'
 
 const suggestions = [
   "Extract all the text content from the uploaded file and summarize it in bullet points.",
@@ -125,22 +126,8 @@ export function ExtractifyChat() {
   }
 
   const handleExtract = () => {
-    if (input.trim() || file) {
-      const schema = `{
-  "type": "object",
-  "properties": {
-    "name": { "type": "string" },
-    "age": { "type": "number" },
-    "city": { "type": "string" }
-  },
-  "required": ["name", "age"]
-}`
-      const data = `{
-  "name": "John Doe",
-  "age": 30,
-  "city": "New York"
-}`
-      setMessages(prev => [...prev, { text: input, schema, data }])
+    if (convertedImageUrl) {
+      setMessages(prev => [{ text: input, data: convertedImageUrl, schema: "image/png" }, ...prev])
       setInput('')
     }
   }
@@ -171,24 +158,12 @@ export function ExtractifyChat() {
           </div>
         </div>
       )}
-      <div className={`flex-1 flex flex-col ${isPreviewOpen && file ? 'mr-[45%]' : ''} transition-all duration-300`}>
+      <div className={`flex-1 flex flex-col-reverse ${isPreviewOpen && file ? 'mr-[45%]' : ''} transition-all duration-300`}>
         <ScrollArea className="flex-1 p-4">
           {messages.map((message, index) => (
-            <div key={index} className="mb-4 bg-white rounded-lg p-3 shadow-sm">
-              <p className="mb-2">{message.text}</p>
-              <Tabs defaultValue="schema" className="w-full">
-                <TabsList>
-                  <TabsTrigger value="schema">JSON Schema</TabsTrigger>
-                  <TabsTrigger value="data">JSON Data</TabsTrigger>
-                </TabsList>
-                <TabsContent value="schema">
-                  <pre className="bg-gray-100 p-2 rounded overflow-x-auto"><code>{message.schema}</code></pre>
-                </TabsContent>
-                <TabsContent value="data">
-                  <pre className="bg-gray-100 p-2 rounded overflow-x-auto"><code>{message.data}</code></pre>
-                </TabsContent>
-              </Tabs>
-            </div>
+            <ExtractifyComponent key={index} prompt={message.text}
+              content={message.data}
+            />
           ))}
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full">

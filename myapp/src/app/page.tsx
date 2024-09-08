@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { WideCardFileUpload } from "@/components/wide-card-file-upload";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,9 @@ import {
 import { useStream } from "./hooks/useStream";
 import { Input } from "@/components/ui/input";
 import { bamlBoilerPlate } from "./constants";
+import { Provider, useAtom } from "jotai";
+import { atomStore, filesAtom } from "./atoms";
+import { CodeMirrorViewer } from "./BAMLPreview";
 
 export default function Home() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -32,34 +35,40 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="w-full max-w-6xl mx-auto">
-      <WideCardFileUpload onFileChange={handleFileUpload} />
-      {uploadedFile && (
-        <p className="mt-4 text-center text-sm text-gray-600">
-          File "{uploadedFile.name}" uploaded successfully!
-        </p>
-      )}
-      {uploadedFile && (
-        <div className="mt-8 flex gap-8">
-          <div className="w-1/2">
-            {previewUrl && (
-              <Image
-                src={previewUrl}
-                alt="Uploaded file preview"
-                width={500}
-                height={700}
-                style={{ objectFit: "contain", width: "100%", height: "auto" }}
-                // placeholder color: not sure why it's not rendering yet.
-                className="rounded-md bg-red-700"
-              />
-            )}
+    <Provider store={atomStore}>
+      <div className="w-full max-w-6xl mx-auto">
+        <WideCardFileUpload onFileChange={handleFileUpload} />
+        {uploadedFile && (
+          <p className="mt-4 text-center text-sm text-gray-600">
+            File "{uploadedFile.name}" uploaded successfully!
+          </p>
+        )}
+        {uploadedFile && (
+          <div className="mt-8 flex gap-8">
+            <div className="w-1/2">
+              {previewUrl && (
+                <Image
+                  src={previewUrl}
+                  alt="Uploaded file preview"
+                  width={500}
+                  height={700}
+                  style={{
+                    objectFit: "contain",
+                    width: "100%",
+                    height: "auto",
+                  }}
+                  // placeholder color: not sure why it's not rendering yet.
+                  className="rounded-md bg-red-700"
+                />
+              )}
+            </div>
+            <div className="w-1/2">
+              <RightPanel base64={previewUrl ?? ""} />
+            </div>
           </div>
-          <div className="w-1/2">
-            <RightPanel base64={previewUrl ?? ""} />
-          </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </Provider>
   );
 }
 
@@ -136,6 +145,12 @@ export const RightPanel = ({ base64 }: { base64: string }) => {
     }
   };
 
+  const [projectFiles, setProjectFiles] = useAtom(filesAtom);
+
+  useEffect(() => {
+    setProjectFiles({ "baml_src/main.baml": bamlBoilerPlate });
+  }, []);
+
   return (
     <div>
       <Button
@@ -159,6 +174,11 @@ export const RightPanel = ({ base64 }: { base64: string }) => {
         <TabsContent value="baml-schema">
           {/* Content for BAML Schema tab */}
           <div className="p-4 bg-gray-100 text-muted-foreground rounded">
+            <CodeMirrorViewer
+              lang="baml"
+              // TODO: set this to the returned baml file
+              shouldScrollDown={isLoadingBaml}
+            />
             <p>BAML Schema content goes here</p>
             {partialDataBaml && <p>{partialDataBaml}</p>}
           </div>

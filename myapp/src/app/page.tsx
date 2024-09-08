@@ -1,6 +1,16 @@
 "use client";
 
 import { ExtractifyChat } from "@/components/extractify-chat"
+import { useState, useEffect } from "react";
+import { useStream } from "./hooks/useStream";
+import { pdfGenerateBamlSchema, extractWithSchema } from "./actions/extract-pdf";
+import { useAtom } from "jotai";
+import { filesAtom } from "./atoms";
+import { bamlBoilerPlate } from "./constants";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CodeMirrorViewer } from "./BAMLPreview";
 
 export default function Home() {
   return (

@@ -1,10 +1,14 @@
 'use client'
 
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
+import ReactDOM from 'react-dom/client'
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { FileIcon, Upload, X, Send, Mic, Music, FileText, FileImage, File } from 'lucide-react'
+import PdfToImageConverter from "@/components/PdfToImageConverter"
+import XlsToImageConverter from "@/components/XlsToImageConverter"
+import DocxToImageConverter from "@/components/DocxToImageConverter"
 
 const suggestions = [
   "Extract all the text content from the uploaded file and summarize it in bullet points.",
@@ -21,6 +25,7 @@ export function ExtractifyChat() {
   const [messages, setMessages] = useState<{ text: string; files: string[] }[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const audioInputRef = useRef<HTMLInputElement>(null)
+  const [convertedFiles, setConvertedFiles] = useState<{ [key: string]: string }>({})
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -37,8 +42,75 @@ export function ExtractifyChat() {
     }
   }, [])
 
-  const handleFiles = (newFiles: FileList) => {
-    setFiles(prevFiles => [...prevFiles, ...Array.from(newFiles)])
+  const handleFiles = async (newFiles: FileList) => {
+    const addedFiles = Array.from(newFiles)
+    setFiles(prevFiles => [...prevFiles, ...addedFiles])
+
+    for (const file of addedFiles) {
+      if (file.type === 'application/pdf' || 
+          file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+          file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        const fileUrl = URL.createObjectURL(file)
+        let convertedImage: string | null = null
+
+        if (file.type === 'application/pdf') {
+          convertedImage = await convertPdfToImage(fileUrl)
+        } else if (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+          convertedImage = await convertXlsToImage(fileUrl)
+        } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+          convertedImage = await convertDocxToImage(fileUrl)
+        }
+
+        if (convertedImage) {
+          setConvertedFiles(prev => ({ ...prev, [file.name]: convertedImage }))
+        }
+      }
+    }
+  }
+
+  const convertPdfToImage = async (pdfUrl: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const converter = document.createElement('div')
+      document.body.appendChild(converter)
+      const root = ReactDOM.createRoot(converter)
+      root.render(
+        <PdfToImageConverter pdfUrl={pdfUrl} onConversionComplete={(imageUrl) => {
+          root.unmount()
+          document.body.removeChild(converter)
+          resolve(imageUrl)
+        }} />
+      )
+    })
+  }
+
+  const convertXlsToImage = async (xlsUrl: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const converter = document.createElement('div')
+      document.body.appendChild(converter)
+      const root = ReactDOM.createRoot(converter)
+      root.render(
+        <XlsToImageConverter xlsUrl={xlsUrl} onConversionComplete={(imageUrl) => {
+          root.unmount()
+          document.body.removeChild(converter)
+          resolve(imageUrl)
+        }} />
+      )
+    })
+  }
+
+  const convertDocxToImage = async (docxUrl: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const converter = document.createElement('div')
+      document.body.appendChild(converter)
+      const root = ReactDOM.createRoot(converter)
+      root.render(
+        <DocxToImageConverter docxUrl={docxUrl} onConversionComplete={(imageUrl) => {
+          root.unmount()
+          document.body.removeChild(converter)
+          resolve(imageUrl)
+        }} />
+      )
+    })
   }
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,11 +162,39 @@ export function ExtractifyChat() {
       })
   }
 
-  const getFileIcon = (fileType: string) => {
-    if (fileType.startsWith('image/')) return <FileImage className="w-5 h-5" />
-    if (fileType.startsWith('audio/')) return <Music className="w-5 h-5" />
-    if (fileType.startsWith('video/')) return <FileIcon className="w-5 h-5" />
+  const getFileIcon = (file: File) => {
+    if (file.type.startsWith('image/') || convertedFiles[file.name]) {
+      return <FileImage className="w-5 h-5" />
+    }
+    if (file.type.startsWith('audio/')) return <Music className="w-5 h-5" />
+    if (file.type.startsWith('video/')) return <FileIcon className="w-5 h-5" />
     return <FileText className="w-5 h-5" />
+  }
+
+  const renderFilePreview = (file: File) => {
+    if (file.type.startsWith('image/') || convertedFiles[file.name]) {
+      return (
+        <img
+          src={convertedFiles[file.name] || URL.createObjectURL(file)}
+          alt={file.name}
+          className="max-w-full max-h-full object-contain"
+        />
+      )
+    } else if (file.type.startsWith('audio/')) {
+      return (
+        <audio controls className="w-full max-w-[90%]">
+          <source src={URL.createObjectURL(file)} type={file.type} />
+          Your browser does not support the audio element.
+        </audio>
+      )
+    } else {
+      return (
+        <div className="text-center text-gray-400">
+          <File className="w-16 h-16 mx-auto mb-4" />
+          <p className="text-sm">Preview not available</p>
+        </div>
+      )
+    }
   }
 
   return (
@@ -126,7 +226,7 @@ export function ExtractifyChat() {
                   <div className="relative flex items-center bg-gray-100 rounded-lg w-64 h-12 group p-2">
                     <div className="flex items-center overflow-hidden flex-1 mr-2">
                       <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-gray-200 rounded">
-                        {getFileIcon(file.type)}
+                        {getFileIcon(file)}
                       </div>
                       <span className="ml-2 text-sm truncate text-gray-700 flex-1">{file.name}</span>
                     </div>
@@ -148,23 +248,7 @@ export function ExtractifyChat() {
                     </p>
                   </div>
                   <div className="flex items-center justify-center h-64 bg-gray-50">
-                    {file.type.startsWith('image/') ? (
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={file.name}
-                        className="max-w-full max-h-full object-contain"
-                      />
-                    ) : file.type.startsWith('audio/') ? (
-                      <audio controls className="w-full max-w-[90%]">
-                        <source src={URL.createObjectURL(file)} type={file.type} />
-                        Your browser does not support the audio element.
-                      </audio>
-                    ) : (
-                      <div className="text-center text-gray-400">
-                        <File className="w-16 h-16 mx-auto mb-4" />
-                        <p className="text-sm">Preview not available</p>
-                      </div>
-                    )}
+                    {renderFilePreview(file)}
                   </div>
                 </HoverCardContent>
               </HoverCard>

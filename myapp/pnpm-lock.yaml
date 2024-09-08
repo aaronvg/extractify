@@ -289,8 +289,6 @@ packages:
   '@codemirror/view@6.33.0':
     resolution: {integrity: sha512-AroaR3BvnjRW8fiZBalAaK+ZzB5usGgI014YKElYZvQdNH5ZIidHlO+cyf/2rWzyBFRkvG6VhiXeAEbC53P2YQ==}
 
-  '@gloo-ai/baml-schema-wasm-web@0.1.0':
-    resolution: {integrity: sha512-21dIOjsU3aunfxvM+7BGQFPA7dELunIwF5GrHtAQzNVBGsEwxK0i105qBmZ3aRY1JmCwoYzPXhc9r4UDPtMfsw==}
   '@floating-ui/core@1.6.7':
     resolution: {integrity: sha512-yDzVT/Lm101nQ5TCVeK65LtdN7Tj4Qpr9RTXJ2vPFLqtLxwOrpoxAHAJI8J3yYWUc40J0BDBheaitK5SJmno2g==}
 
@@ -305,6 +303,9 @@ packages:
 
   '@floating-ui/utils@0.2.7':
     resolution: {integrity: sha512-X8R8Oj771YRl/w+c1HqAC1szL8zWQRwFvgDwT129k9ACdBoud/+/rX9V0qiMl6LWUdP9voC2nDVZYPMQQsb6eA==}
+
+  '@gloo-ai/baml-schema-wasm-web@0.1.0':
+    resolution: {integrity: sha512-21dIOjsU3aunfxvM+7BGQFPA7dELunIwF5GrHtAQzNVBGsEwxK0i105qBmZ3aRY1JmCwoYzPXhc9r4UDPtMfsw==}
 
   '@hookform/resolvers@3.9.0':
     resolution: {integrity: sha512-bU0Gr4EepJ/EQsH/IwEzYLsT/PEj5C0ynLQ4m+GSHS+xKH4TfSelhluTgOaoc4kA5s7eCsQbM4wvZLzELmWzUg==}
@@ -2041,7 +2042,6 @@ snapshots:
       style-mod: 4.1.2
       w3c-keyname: 2.2.8
 
-  '@gloo-ai/baml-schema-wasm-web@0.1.0': {}
   '@floating-ui/core@1.6.7':
     dependencies:
       '@floating-ui/utils': 0.2.7
@@ -2058,6 +2058,8 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
 
   '@floating-ui/utils@0.2.7': {}
+
+  '@gloo-ai/baml-schema-wasm-web@0.1.0': {}
 
   '@hookform/resolvers@3.9.0(react-hook-form@7.53.0(react@18.3.1))':
     dependencies:

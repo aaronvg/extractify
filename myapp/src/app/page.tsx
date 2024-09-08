@@ -57,9 +57,11 @@ export default function Home() {
 }
 
 export const RightPanel = () => {
-  const { data, partialData, isComplete, isLoading, error, mutate } = useStream(
-    pdfGenerateBamlSchema
-  );
+  // TODO: need to fix the types.
+  const { data, partialData, isComplete, isLoading, error, mutate } = useStream<
+    string,
+    any
+  >(pdfGenerateBamlSchema);
   return (
     <div>
       <Button
@@ -81,6 +83,7 @@ export const RightPanel = () => {
           {/* Content for BAML Schema tab */}
           <div className="p-4 bg-gray-100 text-muted-foreground rounded">
             <p>BAML Schema content goes here</p>
+            {partialData && <p>{partialData}</p>}
           </div>
         </TabsContent>
         <TabsContent value="json-output">

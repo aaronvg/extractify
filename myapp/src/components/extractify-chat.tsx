@@ -312,7 +312,7 @@ export function ExtractifyChat() {
     if (convertedImageUrl) {
       setMessages((prev) => [
         { text: input, data: convertedImageUrl, schema: "image/png" },
-        ...prev,
+        // ...prev,
       ]);
       setInput("");
     }
@@ -389,17 +389,17 @@ export function ExtractifyChat() {
         } transition-all duration-300`}
       >
         <ScrollArea className="flex-1 p-4 flex flex-col">
-          {messages.map((message, index) => (
+          {messages.length > 0 && (
             <ExtractifyComponent
-              key={index}
-              prompt={message.text}
-              content={message.data}
+              key={messages[0].text + messages[0].schema + messages[0].data}
+              prompt={messages[0].text}
+              content={messages[0].data}
             />
-          ))}
+          )}
         </ScrollArea>
         {file && (
           <div className="border-t border-gray-200 p-4">
-            <div className="mb-4">
+            {/* <div className="mb-4">
               <p className="text-sm font-medium text-gray-500 mb-2">
                 Suggestions:
               </p>
@@ -416,7 +416,7 @@ export function ExtractifyChat() {
                   </Button>
                 ))}
               </div>
-            </div>
+            </div> */}
             <div className="relative">
               <Textarea
                 value={input}

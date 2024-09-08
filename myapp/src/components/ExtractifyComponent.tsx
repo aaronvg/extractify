@@ -24,6 +24,7 @@ const ExtractifyComponent: React.FC<{
   const [runAllError, setRunAllError] = useState<string | undefined>(undefined);
   const [bamlCode, setBamlCode] = useState<string>(bamlBoilerPlate);
   const [activeTab, setActiveTab] = useState<string>("schema");
+  const [showRawJson, setShowRawJson] = useState<boolean>(false);
   const setFileAtom = useSetAtom(filesAtom);
 
   const {
@@ -136,17 +137,29 @@ const ExtractifyComponent: React.FC<{
           />
         </TabsContent>
         <TabsContent value="data">
+
+        <div className="mb-2">
+              <Button onClick={() => setShowRawJson(!showRawJson)}>
+                {showRawJson ? "Show JSON Grid" : "Show Raw JSON"}
+              </Button>
+            </div>
           <div className="demo-container w-full">
             {isLoadingJson && !(isCompleteJson || isErrorJson) && (
               <><p>Extracting data using schema...</p>
               </>
             )}
-            <JSONGrid
-              className="text-sm"
-              theme="defaultLight"
-              defaultExpandDepth={10}
-              data={ partialDataJson ?? {}}
-            />
+            {showRawJson ? (
+              <pre className="text-sm bg-gray-100 p-2 rounded">
+                {JSON.stringify(partialDataJson ?? {}, null, 2)}
+              </pre>
+            ) : (
+              <JSONGrid
+                className="text-sm"
+                theme="defaultLight"
+                defaultExpandDepth={10}
+                data={partialDataJson ?? {}}
+              />
+            )}
           </div>
         </TabsContent>
       </Tabs>

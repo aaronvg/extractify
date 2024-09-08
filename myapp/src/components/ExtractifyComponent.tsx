@@ -13,6 +13,8 @@ import { ClipLoader } from "react-spinners";
 import JSONGrid from "@redheadphone/react-json-grid";
 import { useSetAtom } from "jotai";
 import { filesAtom } from "@/app/atoms";
+import { Button } from "./ui/button";
+import { PlayCircleIcon } from "lucide-react";
 
 
 const ExtractifyComponent: React.FC<{
@@ -67,6 +69,19 @@ const ExtractifyComponent: React.FC<{
     }
   };
 
+  const runExtract = async () => {
+    try {
+      setActiveTab("data");
+      setRunAllError(undefined);
+      const data = await mutateJson([content], bamlCode);
+      console.log("jsonOutput", data);
+      setRunAllError(undefined); // Reset error if runAll succeeds
+    } catch (error) {
+      console.error("Error running runExtract:", error);
+      setRunAllError("Failed to run extraction. Please try again.");
+    }
+  };
+
   useEffect(() => {
     if (dataBaml) {
       setBamlCode(bamlBoilerPlate + dataBaml);
@@ -103,32 +118,35 @@ const ExtractifyComponent: React.FC<{
           </TabsTrigger>
         </TabsList>
         <TabsContent value="schema">
+          {
+            !isLoadingBaml && bamlCode && (
+              <Button onClick={runExtract} className="mb-2">
+                <PlayCircleIcon className="mr-2" />
+              </Button>
+            )
+          }
           <CodeMirrorViewer
             lang="baml"
             file_content={bamlCode}
-            onChange={isCompleteBaml || isErrorBaml ? setBamlCode : () => { }}
+            onChange={isCompleteBaml || isErrorBaml ? (val) => {
+              setBamlCode(val)
+              setFileAtom(val)
+             } : () => { }}
             shouldScrollDown={!isCompleteBaml && !isErrorBaml}
           />
         </TabsContent>
         <TabsContent value="data">
           <div className="demo-container w-full">
-            {isLoadingJson && !(isCompleteJson || isErrorJson) ? (
+            {isLoadingJson && !(isCompleteJson || isErrorJson) && (
               <><p>Extracting data using schema...</p>
-                {partialDataJson && (<JSONGrid
-                  className="text-sm"
-                  theme="defaultLight"
-                  defaultExpandDepth={10}
-                  data={partialDataJson}
-                />)}
               </>
-            ) : (
-              <JSONGrid
-                className="text-sm"
-                theme="defaultLight"
-                defaultExpandDepth={10}
-                data={dataJson ?? {}}
-              />
             )}
+            <JSONGrid
+              className="text-sm"
+              theme="defaultLight"
+              defaultExpandDepth={10}
+              data={ partialDataJson ?? {}}
+            />
           </div>
         </TabsContent>
       </Tabs>

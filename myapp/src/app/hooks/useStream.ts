@@ -2,10 +2,7 @@
 import { useState, useEffect } from "react";
 import { readStreamableValue, StreamableValue } from "ai/rsc";
 
-/**
- * A hook that streams data from a server action. The server action must return a StreamableValue.
- * See the example action in app/actions/streamable_objects.tsx
- *  **/
+
 export function useStream<T, P extends any[]>(
   serverAction: (...args: P) => Promise<{ object: StreamableValue<Partial<T>, any> }>
 ) {
@@ -13,8 +10,8 @@ export function useStream<T, P extends any[]>(
   const [isComplete, setIsComplete] = useState(false);
   const [isError, setIsError] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [partialData, setPartialData] = useState<Partial<T> | undefined>(undefined); // Initialize data state
-  const [data, setData] = useState<T | undefined>(undefined); // full non-partial data
+  const [partialData, setPartialData] = useState<string | undefined>(undefined); // Initialize data state
+  const [data, setData] = useState<string | undefined>(undefined); // full non-partial data
 
   const mutate = async (
     ...params: Parameters<typeof serverAction>
@@ -38,15 +35,15 @@ export function useStream<T, P extends any[]>(
           // }
           console.log("value", value);
           streamedData = value;
-          setPartialData(streamedData); // Update data state with the latest value
+          setPartialData(streamedData as unknown as string); // Update data state with the latest value
         }
       }
 
 
       setIsComplete(true);
-      setData(streamedData as T);
+      setData(streamedData as unknown as string);
       // If it completes, it means it's the full data.
-      return streamedData as T;
+      return streamedData as unknown as T;
     } catch (err) {
       console.log("error", err);
 

@@ -6,8 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 
 import Image from "next/image";
-import { pdfGenerateBamlSchema } from "./actions/extract-pdf";
+import {
+  extractWithSchema,
+  pdfGenerateBamlSchema,
+} from "./actions/extract-pdf";
 import { useStream } from "./hooks/useStream";
+import { Input } from "@/components/ui/input";
+import { bamlBoilerPlate } from "./constants";
 
 export default function Home() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -49,31 +54,103 @@ export default function Home() {
               />
             )}
           </div>
-          <div className="w-1/2"></div>
+          <div className="w-1/2">
+            <RightPanel base64={previewUrl ?? ""} />
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-export const RightPanel = () => {
-  // TODO: need to fix the types.
-  const { data, partialData, isComplete, isLoading, error, mutate } = useStream<
-    string,
-    any
-  >(pdfGenerateBamlSchema);
+const getBase64ImageFromPath = async (imagePath: string): Promise<string> => {
+  if (imagePath.startsWith("data:")) {
+    // It's already a base64 string
+    return imagePath;
+  } else {
+    // It's a path, fetch the image and convert to base64
+    console.log("imagePath", imagePath);
+    const response = await fetch(imagePath);
+    const blob = await response.blob();
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === "string") {
+          resolve(reader.result);
+        } else {
+          reject(new Error("Failed to convert image to base64"));
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+};
+
+// pass in the image base64 string to this component
+export const RightPanel = ({ base64 }: { base64: string }) => {
+  const [prompt, setPrompt] = useState<string | undefined>(undefined);
+  const getBase64Uri = async () => {
+    const url = window.location.origin + base64;
+    return await getBase64ImageFromPath(url);
+  };
+  // TODO: need to fix the types. data and partialData are actually a string.
+  const [runAllError, setRunAllError] = useState<string | undefined>(undefined);
+  const {
+    data: dataBaml,
+    partialData: partialDataBaml,
+    isLoading: isLoadingBaml,
+    isComplete: isCompleteBaml,
+    isError: isErrorBaml,
+    error: errorBaml,
+    mutate: mutateBaml,
+  } = useStream(pdfGenerateBamlSchema);
+
+  const {
+    partialData: partialDataJson,
+    isLoading: isLoadingJson,
+    isComplete: isCompleteJson,
+    isError: isErrorJson,
+    error: errorJson,
+    mutate: mutateJson,
+  } = useStream(extractWithSchema);
+
+  const runAll = async () => {
+    try {
+      console.log("mutatebaml");
+      const base64Uri = await getBase64Uri();
+      const data = await mutateBaml(base64Uri, prompt);
+      console.log("bamlFile", data);
+
+      console.log("mutatejson");
+      if (!data) {
+        throw new Error("Failed to generate BAML schema");
+      }
+
+      const res = await mutateJson(base64Uri, data + bamlBoilerPlate);
+      console.log("jsonOutput", res);
+      setRunAllError(undefined); // Reset error if runAll succeeds
+    } catch (error) {
+      console.error("Error running runAll:", error);
+      setRunAllError("Failed to run extraction. Please try again.");
+    }
+  };
+
   return (
     <div>
       <Button
         onClick={() => {
-          // call mutate with the base64 string! which will call the pdfGenerateBamlSchema server action
-          // and then partialData will be updated with the new data as it streams in.
-          // mutate()
+          runAll();
         }}
         className="mb-4"
       >
         Extract
       </Button>
+      <Input
+        value={prompt ?? ""}
+        onChange={(e) => setPrompt(e.target.value)}
+        placeholder="Enter an optional prompt. E.g. 'focus on xyz'"
+      />
       <Tabs defaultValue="baml-schema">
         <TabsList>
           <TabsTrigger value="baml-schema">BAML Schema</TabsTrigger>
@@ -83,16 +160,18 @@ export const RightPanel = () => {
           {/* Content for BAML Schema tab */}
           <div className="p-4 bg-gray-100 text-muted-foreground rounded">
             <p>BAML Schema content goes here</p>
-            {partialData && <p>{partialData}</p>}
+            {partialDataBaml && <p>{partialDataBaml}</p>}
           </div>
         </TabsContent>
         <TabsContent value="json-output">
           {/* Content for JSON Output tab */}
           <div className="p-4 bg-gray-100 text-muted-foreground rounded">
             <p>JSON Output content goes here</p>
+            {partialDataJson && <p>{partialDataJson}</p>}
           </div>
         </TabsContent>
       </Tabs>
+      {runAllError && <div className="text-red-500">{runAllError}</div>}
     </div>
   );
 };

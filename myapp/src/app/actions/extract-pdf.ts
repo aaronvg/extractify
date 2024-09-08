@@ -15,7 +15,7 @@ function parseBase64Prefix(base64: string): {
 
 
 export async function pdfGenerateBamlSchema(base64: string, prompt?: string) {
-  const objectStream = createStreamableValue<Partial<string>, any>(
+  const objectStream = createStreamableValue<string, any>(
     "starting.."
   );
   const { mediaType, data: rawBase64 } = parseBase64Prefix(base64);

@@ -53,6 +53,7 @@ const ExtractifyComponent: React.FC<{
       }
 
       setActiveTab("data");
+      console.log("content", content);
       const res = await mutateJson([content], bamlBoilerPlate + data);
       console.log("jsonOutput", res);
       setRunAllError(undefined); // Reset error if runAll succeeds
@@ -100,18 +101,21 @@ const ExtractifyComponent: React.FC<{
             lang="baml"
             file_content={bamlCode}
             onChange={isCompleteBaml || isErrorBaml ? setBamlCode : () => {}}
+            shouldScrollDown={!isCompleteBaml && !isErrorBaml}
           />
         </TabsContent>
         <TabsContent value="data">
           <div className="demo-container w-full">
-            {
+            {isLoadingJson && !isCompleteJson ? (
+              <p>Extracting data using schema...</p>
+            ) : (
               <JSONGrid
                 className="text-sm"
                 theme="defaultLight"
                 defaultExpandDepth={10}
                 data={isCompleteJson ? dataJson : partialDataJson ?? {}}
               />
-            }
+            )}
           </div>
         </TabsContent>
       </Tabs>

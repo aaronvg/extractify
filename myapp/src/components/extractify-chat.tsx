@@ -1,19 +1,32 @@
 'use client'
 
 import React, { useState, useRef, useCallback } from 'react'
+import ReactDOM from 'react-dom/client'
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ChevronRight, ChevronLeft, Upload, X, Send, FileText, File, Mic } from 'lucide-react'
+import PdfToImageConverter from "@/components/PdfToImageConverter"
+import XlsToImageConverter from "@/components/XlsToImageConverter"
+import DocxToImageConverter from "@/components/DocxToImageConverter"
+
+const suggestions = [
+  "Extract all the text content from the uploaded file and summarize it in bullet points.",
+  "Analyze the sentiment of the document and provide a brief explanation of the overall tone.",
+  "Identify and list the top 5 most frequently occurring keywords in the document.",
+  "Generate a concise abstract of the document, highlighting its main ideas and conclusions.",
+]
 
 export function ExtractifyChat() {
   const [file, setFile] = useState<File | null>(null)
+  const [convertedImageUrl, setConvertedImageUrl] = useState<string | null>(null)
   const [input, setInput] = useState('')
   const [isPreviewOpen, setIsPreviewOpen] = useState(true)
   const [messages, setMessages] = useState<{ text: string; schema: string; data: string }[]>([])
   const [isRecording, setIsRecording] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [isConverting, setIsConverting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -31,18 +44,84 @@ export function ExtractifyChat() {
     e.stopPropagation()
     setIsDragging(false)
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setFile(e.dataTransfer.files[0])
+      handleFile(e.dataTransfer.files[0])
     }
   }, [])
 
+  const convertFile = async (file: File): Promise<string | null> => {
+    const fileUrl = URL.createObjectURL(file)
+    let convertedImage: string | null = null
+
+    if (file.type === 'application/pdf') {
+      convertedImage = await new Promise((resolve) => {
+        const converter = document.createElement('div')
+        document.body.appendChild(converter)
+        const root = ReactDOM.createRoot(converter)
+        root.render(
+          <PdfToImageConverter pdfUrl={fileUrl} onConversionComplete={(imageUrl) => {
+            root.unmount()
+            document.body.removeChild(converter)
+            resolve(imageUrl)
+          }} />
+        )
+      })
+    } else if (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+      convertedImage = await new Promise((resolve) => {
+        const converter = document.createElement('div')
+        document.body.appendChild(converter)
+        const root = ReactDOM.createRoot(converter)
+        root.render(
+          <XlsToImageConverter xlsUrl={fileUrl} onConversionComplete={(imageUrl) => {
+            root.unmount()
+            document.body.removeChild(converter)
+            resolve(imageUrl)
+          }} />
+        )
+      })
+    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      convertedImage = await new Promise((resolve) => {
+        const converter = document.createElement('div')
+        document.body.appendChild(converter)
+        const root = ReactDOM.createRoot(converter)
+        root.render(
+          <DocxToImageConverter docxUrl={fileUrl} onConversionComplete={(imageUrl) => {
+            root.unmount()
+            document.body.removeChild(converter)
+            resolve(imageUrl)
+          }} />
+        )
+      })
+    }
+
+    return convertedImage
+  }
+
+  const handleFile = async (selectedFile: File) => {
+    setFile(selectedFile)
+    setConvertedImageUrl(null)
+    setIsConverting(true)
+
+    if (selectedFile.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+        selectedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        selectedFile.type === 'application/pdf') {
+      const convertedImage = await convertFile(selectedFile)
+      setConvertedImageUrl(convertedImage)
+    } else if (selectedFile.type.startsWith('image/')) {
+      setConvertedImageUrl(URL.createObjectURL(selectedFile))
+    }
+
+    setIsConverting(false)
+  }
+
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0])
+      handleFile(e.target.files[0])
     }
   }
 
   const removeFile = () => {
     setFile(null)
+    setConvertedImageUrl(null)
   }
 
   const handleExtract = () => {
@@ -111,6 +190,21 @@ export function ExtractifyChat() {
               </Tabs>
             </div>
           ))}
+          {messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-full">
+              <p className="text-lg font-medium text-gray-500 mb-4">Try one of these suggestions:</p>
+              {suggestions.map((suggestion, index) => (
+                <Button
+                  key={index}
+                  variant="ghost"
+                  className="w-full max-w-2xl justify-start text-left text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 mb-2 p-3 rounded-lg transition-colors"
+                  onClick={() => setInput(suggestion)}
+                >
+                  {suggestion}
+                </Button>
+              ))}
+            </div>
+          )}
         </ScrollArea>
         <div className="border-t border-gray-200 p-4 bg-white">
           <div className="relative">
@@ -155,30 +249,28 @@ export function ExtractifyChat() {
             {isPreviewOpen ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </Button>
           {isPreviewOpen && (
-            <div className="p-4 h-full flex flex-col">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">File Preview</h3>
-                <Button variant="ghost" size="icon" onClick={removeFile}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              <ScrollArea className="flex-grow border rounded-lg">
-                <div className="p-4 min-h-full flex items-center justify-center">
-                  {file.type.startsWith('image/') ? (
-                    <img
-                      src={URL.createObjectURL(file)}
-                      alt={file.name}
-                      className="max-w-full max-h-full object-contain"
-                    />
-                  ) : (
-                    <div className="text-center text-gray-400">
-                      <File className="w-16 h-16 mx-auto mb-4" />
-                      <p className="text-sm">{file.name}</p>
-                      <p className="text-xs mt-2">{(file.size / 1024).toFixed(2)} KB</p>
-                    </div>
-                  )}
+            <div className="h-full p-4 overflow-auto">
+              {isConverting ? (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  <span>Converting...</span>
                 </div>
-              </ScrollArea>
+              ) : convertedImageUrl ? (
+                <img 
+                  src={convertedImageUrl} 
+                  alt="Preview" 
+                  className="max-w-full h-auto"
+                />
+              ) : file.type.startsWith('audio/') ? (
+                <audio controls className="w-full">
+                  <source src={URL.createObjectURL(file)} type={file.type} />
+                  Your browser does not support the audio element.
+                </audio>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  <File className="w-16 h-16 mr-2" />
+                  <span>No preview available</span>
+                </div>
+              )}
             </div>
           )}
         </div>

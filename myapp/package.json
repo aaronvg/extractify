@@ -26,6 +26,7 @@
     "ai": "^3.3.28",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "formdata-node": "^6.0.3",
     "framer-motion": "^11.5.4",
     "html2canvas": "^1.4.1",
     "jotai": "^2.9.3",

@@ -38,45 +38,45 @@ const getSuggestions = (fileType: string) => {
     case "application/pdf":
       return [
         "Extract all headings and subheadings from the PDF.",
-        "Summarize the main points of each page in bullet points.",
-        "Identify and list any tables or figures in the document.",
-        "Extract all references or citations from the PDF.",
+        // "Summarize the main points of each page in bullet points.",
+        // "Identify and list any tables or figures in the document.",
+        // "Extract all references or citations from the PDF.",
       ];
     case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
       return [
         "Summarize the data in each sheet of the Excel file.",
-        "Identify the top 5 highest values in a specific column.",
-        "Calculate the average, median, and mode for a numerical column.",
-        "Extract all unique values from a specific column.",
+        // "Identify the top 5 highest values in a specific column.",
+        // "Calculate the average, median, and mode for a numerical column.",
+        // "Extract all unique values from a specific column.",
       ];
     case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
       return [
         "Extract all the text content and summarize it in bullet points.",
-        "Identify and list all formatting styles used in the document.",
-        "Extract all comments and tracked changes in the document.",
-        "List all hyperlinks present in the document.",
+        // "Identify and list all formatting styles used in the document.",
+        // "Extract all comments and tracked changes in the document.",
+        // "List all hyperlinks present in the document.",
       ];
     case "image/jpeg":
     case "image/png":
       return [
         "Describe the main elements visible in the image.",
-        "Identify any text present in the image.",
-        "Detect and list the colors used in the image.",
-        "Estimate the number of people or objects in the image.",
+        // "Identify any text present in the image.",
+        // "Detect and list the colors used in the image.",
+        // "Estimate the number of people or objects in the image.",
       ];
     case "audio/mpeg":
       return [
         "Transcribe the audio content.",
-        "Identify the main speakers in the audio.",
-        "Summarize the key points discussed in the audio.",
-        "Detect any background noises or music in the audio.",
+        // "Identify the main speakers in the audio.",
+        // "Summarize the key points discussed in the audio.",
+        // "Detect any background noises or music in the audio.",
       ];
     default:
       return [
         "Extract all the text content from the file and summarize it in bullet points.",
-        "Analyze the sentiment of the content and provide a brief explanation of the overall tone.",
-        "Identify and list the top 5 most frequently occurring keywords in the file.",
-        "Generate a concise abstract of the file's content, highlighting its main ideas and conclusions.",
+        // "Analyze the sentiment of the content and provide a brief explanation of the overall tone.",
+        // "Identify and list the top 5 most frequently occurring keywords in the file.",
+        // "Generate a concise abstract of the file's content, highlighting its main ideas and conclusions.",
       ];
   }
 };
@@ -421,8 +421,8 @@ export function ExtractifyChat() {
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Enter extraction instructions..."
-                className="pr-24 resize-none bg-gray-50 border-gray-200 min-h-[150px] text-gray-900 w-full text-base"
+                placeholder="focus on the design and layout"
+                className="pr-24 resize-none bg-gray-50 border-gray-200 min-h-[50px] text-gray-900 w-full text-base"
                 onFocus={() => setIsListening(true)}
                 onBlur={() => setIsListening(false)}
               />

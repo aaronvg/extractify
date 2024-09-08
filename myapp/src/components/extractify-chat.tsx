@@ -6,11 +6,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { ChevronRight, ChevronLeft, Upload, X, Send, FileText, File, Mic } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Upload, X, Send, FileText, File as FileIcon, Mic, FileSpreadsheet, FileImage, Music } from 'lucide-react'
 import PdfToImageConverter from "@/components/PdfToImageConverter"
 import XlsToImageConverter from "@/components/XlsToImageConverter"
 import DocxToImageConverter from "@/components/DocxToImageConverter"
 import ExtractifyComponent from './ExtractifyComponent'
+import Header from "@/components/Header"
+import exampleFiles from '@/examples'
 
 const suggestions = [
   "Extract all the text content from the uploaded file and summarize it in bullet points.",
@@ -18,6 +20,12 @@ const suggestions = [
   "Identify and list the top 5 most frequently occurring keywords in the document.",
   "Generate a concise abstract of the document, highlighting its main ideas and conclusions.",
 ]
+
+interface ExampleFile {
+  name: string;
+  type: string;
+  url: string;
+}
 
 export function ExtractifyChat() {
   const [file, setFile] = useState<File | null>(null)
@@ -29,6 +37,7 @@ export function ExtractifyChat() {
   const [isDragging, setIsDragging] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [selectedFile, setSelectedFile] = useState<ExampleFile | null>(null)
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -97,22 +106,42 @@ export function ExtractifyChat() {
     return convertedImage
   }
 
-  const handleFile = async (selectedFile: File) => {
-    setFile(selectedFile)
+  const handleFileSelect = useCallback(async (selectedFile: ExampleFile) => {
+    setSelectedFile(selectedFile)
+    setFile(null)
     setConvertedImageUrl(null)
     setIsConverting(true)
 
-    if (selectedFile.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-        selectedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-        selectedFile.type === 'application/pdf') {
-      const convertedImage = await convertFile(selectedFile)
+    try {
+      const response = await fetch(selectedFile.url)
+      if (!response.ok) throw new Error('Network response was not ok')
+      const blob = await response.blob()
+      const file = new File([blob], selectedFile.name, { type: selectedFile.type })
+      await handleFile(file)
+    } catch (error) {
+      console.error('Error loading example file:', error)
+      setIsConverting(false)
+    }
+  }, [])
+
+  const handleFile = useCallback(async (uploadedFile: File) => {
+    setFile(uploadedFile)
+    setConvertedImageUrl(null)
+    setIsConverting(true)
+
+    if (uploadedFile.type === 'application/pdf' ||
+        uploadedFile.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+        uploadedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      const convertedImage = await convertFile(uploadedFile)
       setConvertedImageUrl(convertedImage)
-    } else if (selectedFile.type.startsWith('image/')) {
-      setConvertedImageUrl(URL.createObjectURL(selectedFile))
+    } else if (uploadedFile.type.startsWith('image/')) {
+      setConvertedImageUrl(URL.createObjectURL(uploadedFile))
+    } else if (uploadedFile.type.startsWith('audio/')) {
+      setConvertedImageUrl(URL.createObjectURL(uploadedFile))
     }
 
     setIsConverting(false)
-  }
+  }, [])
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -141,14 +170,53 @@ export function ExtractifyChat() {
     // Implement voice input logic here
   }
 
+  const renderPreview = () => {
+    if (isConverting) {
+      return (
+        <div className="flex items-center justify-center h-full text-gray-500">
+          <span>Converting...</span>
+        </div>
+      )
+    }
+
+    if (convertedImageUrl) {
+      if (file?.type.startsWith('audio/')) {
+        return (
+          <div className="flex flex-col items-center justify-center h-full">
+            <Music className="w-16 h-16 mb-4 text-purple-500" />
+            <audio controls className="w-full max-w-md">
+              <source src={convertedImageUrl} type={file.type} />
+              Your browser does not support the audio element.
+            </audio>
+          </div>
+        )
+      }
+      return (
+        <img 
+          src={convertedImageUrl} 
+          alt="Preview" 
+          className="max-w-full h-auto"
+        />
+      )
+    }
+
+    return (
+      <div className="flex items-center justify-center h-full text-gray-500">
+        <FileIcon className="w-16 h-16 mr-2" />
+        <span>Preview for {file?.name}</span>
+      </div>
+    )
+  }
+
   return (
     <div 
-      className="flex h-screen bg-gray-50 text-gray-900 relative"
+      className="flex flex-col h-screen bg-gray-50 text-gray-900 relative"
       onDragEnter={handleDrag}
       onDragLeave={handleDrag}
       onDragOver={handleDrag}
       onDrop={handleDrop}
     >
+      <Header onFileSelect={handleFileSelect} selectedFile={selectedFile} />
       {isDragging && (
         <div className="absolute inset-0 bg-blue-100 bg-opacity-90 flex items-center justify-center z-50">
           <div className="text-center text-blue-500">
@@ -159,26 +227,29 @@ export function ExtractifyChat() {
         </div>
       )}
       <div className={`flex-1 flex flex-col ${isPreviewOpen && file ? 'mr-[45%]' : ''} transition-all duration-300`}>
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-1 p-4 flex flex-col">
           {messages.map((message, index) => (
             <ExtractifyComponent key={index} prompt={message.text}
               content={message.data}
             />
           ))}
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full">
-              <p className="text-lg font-medium text-gray-500 mb-4">Try one of these suggestions:</p>
-              {suggestions.map((suggestion, index) => (
-                <Button
-                  key={index}
-                  variant="ghost"
-                  className="w-full max-w-2xl justify-start text-left text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 mb-2 p-3 rounded-lg transition-colors"
-                  onClick={() => setInput(suggestion)}
-                >
-                  {suggestion}
-                </Button>
-              ))}
-            </div>
+          {messages.length === 0 && file && (
+            <>
+              <div className="flex-grow" />
+              <div className="flex flex-col items-center justify-end">
+                <p className="text-lg font-medium text-gray-500 mb-4">Try one of these suggestions:</p>
+                {suggestions.map((suggestion, index) => (
+                  <Button
+                    key={index}
+                    variant="ghost"
+                    className="w-full max-w-2xl justify-start text-left text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 mb-2 p-3 rounded-lg transition-colors"
+                    onClick={() => setInput(suggestion)}
+                  >
+                    {suggestion}
+                  </Button>
+                ))}
+              </div>
+            </>
           )}
         </ScrollArea>
         <div className="border-t border-gray-200 p-4 bg-white">
@@ -187,7 +258,7 @@ export function ExtractifyChat() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Enter extraction instructions..."
-              className="pr-24 resize-none bg-gray-50 border-gray-200 min-h-[100px] text-gray-900 w-full"
+              className="pr-24 resize-none bg-gray-50 border-gray-200 min-h-[150px] text-gray-900 w-full"
             />
             <div className="absolute right-2 bottom-2 flex space-x-2">
               <Button
@@ -225,27 +296,7 @@ export function ExtractifyChat() {
           </Button>
           {isPreviewOpen && (
             <div className="h-full p-4 overflow-auto">
-              {isConverting ? (
-                <div className="flex items-center justify-center h-full text-gray-500">
-                  <span>Converting...</span>
-                </div>
-              ) : convertedImageUrl ? (
-                <img 
-                  src={convertedImageUrl} 
-                  alt="Preview" 
-                  className="max-w-full h-auto"
-                />
-              ) : file.type.startsWith('audio/') ? (
-                <audio controls className="w-full">
-                  <source src={URL.createObjectURL(file)} type={file.type} />
-                  Your browser does not support the audio element.
-                </audio>
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
-                  <File className="w-16 h-16 mr-2" />
-                  <span>No preview available</span>
-                </div>
-              )}
+              {renderPreview()}
             </div>
           )}
         </div>

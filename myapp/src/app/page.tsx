@@ -1,117 +1,13 @@
 "use client";
 
-import PdfToImageConverter from "@/components/PdfToImageConverter";
-import XlsToImageConverter from "@/components/XlsToImageConverter";
-import DocxToImageConverter from "@/components/DocxToImageConverter";
-import AudioPlayer from "@/components/AudioPlayer";
-import { useState, useCallback, useEffect } from "react";
-import { WideCardFileUpload } from "@/components/wide-card-file-upload";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-
-import Image from "next/image";
-import {
-  extractWithSchema,
-  pdfGenerateBamlSchema,
-} from "./actions/extract-pdf";
-import { useStream } from "./hooks/useStream";
-import { Input } from "@/components/ui/input";
-import { bamlBoilerPlate } from "./constants";
-import { Provider, useAtom } from "jotai";
-import { atomStore, filesAtom } from "./atoms";
-import { CodeMirrorViewer } from "./BAMLPreview";
+import { ExtractifyChat } from "@/components/extractify-chat"
 
 export default function Home() {
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [fileUrl, setFileUrl] = useState<string | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-
-  const handleFileUpload = useCallback((file: File | null) => {
-    setUploadedFile(file);
-    if (file) {
-      console.log("File uploaded:", file.name, "Size:", file.size, "bytes");
-      const url = URL.createObjectURL(file);
-      setFileUrl(url);
-      if (file.type.startsWith("image/")) {
-        setImageUrl(url);
-      } else {
-        setImageUrl(null);
-      }
-    } else {
-      console.log("File removed");
-      setFileUrl(null);
-      setImageUrl(null);
-    }
-  }, []);
-
-  const handleConversionComplete = useCallback(
-    (convertedImageUrl: string | null) => {
-      setImageUrl(convertedImageUrl);
-    },
-    []
-  );
-
-  useEffect(() => {
-    return () => {
-      if (fileUrl) {
-        URL.revokeObjectURL(fileUrl);
-      }
-    };
-  }, [fileUrl]);
-
   return (
-    <Provider store={atomStore}>
-      <div className="w-full max-w-md mx-auto">
-        <WideCardFileUpload onFileChange={handleFileUpload} />
-        {uploadedFile && (
-          <p className="mt-4 text-center text-sm text-gray-600">
-            File "{uploadedFile.name}" uploaded successfully!
-          </p>
-        )}
-        {fileUrl && (
-          <div className="mt-4">
-            {uploadedFile?.type === "application/pdf" && (
-              <PdfToImageConverter
-                pdfUrl={fileUrl}
-                onConversionComplete={handleConversionComplete}
-              />
-            )}
-            {uploadedFile?.type ===
-              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" && (
-              <XlsToImageConverter
-                xlsUrl={fileUrl}
-                onConversionComplete={handleConversionComplete}
-              />
-            )}
-            {uploadedFile?.type ===
-              "application/vnd.openxmlformats-officedocument.wordprocessingml.document" && (
-              <DocxToImageConverter
-                docxUrl={fileUrl}
-                onConversionComplete={handleConversionComplete}
-              />
-            )}
-            {imageUrl ? (
-              <img
-                src={imageUrl}
-                alt="Converted file"
-                style={{ maxWidth: "100%" }}
-              />
-            ) : uploadedFile?.type.startsWith("image/") ? (
-              <img
-                src={fileUrl}
-                alt="Uploaded image"
-                style={{ maxWidth: "100%" }}
-              />
-            ) : uploadedFile?.type.startsWith("audio/") ? (
-              <AudioPlayer audioUrl={fileUrl} />
-            ) : (
-              <p>Converting file to image...</p>
-            )}
-          </div>
-        )}
-      </div>
-    </Provider>
-  );
+    <div className="w-screen h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <ExtractifyChat />
+    </div>
+  )
 }
 
 const getBase64ImageFromPath = async (imagePath: string): Promise<string> => {

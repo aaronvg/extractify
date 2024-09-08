@@ -16,7 +16,7 @@ const ExtractifyComponent: React.FC<{
     prompt?: string
 }> = ({content, prompt}) => {
     const [runAllError, setRunAllError] = useState<string | undefined>(undefined);
-    const [bamlCode, setBamlCode] = useState<string>("");
+    const [bamlCode, setBamlCode] = useState<string>(bamlBoilerPlate);
     const [activeTab, setActiveTab] = useState<string>("schema");
 
     const {
@@ -52,7 +52,7 @@ const ExtractifyComponent: React.FC<{
           }
    
           setActiveTab("data");
-          const res = await mutateJson([content], data + bamlBoilerPlate);
+          const res = await mutateJson([content], bamlBoilerPlate + data);
           console.log("jsonOutput", res);
           setRunAllError(undefined); // Reset error if runAll succeeds
         } catch (error) {
@@ -63,9 +63,9 @@ const ExtractifyComponent: React.FC<{
 
       useEffect(() => {
         if (dataBaml) {
-          setBamlCode(dataBaml);
+          setBamlCode(bamlBoilerPlate + dataBaml);
         } else if (partialDataBaml) {
-          setBamlCode(partialDataBaml);
+          setBamlCode(bamlBoilerPlate + partialDataBaml);
         }
       }, [dataBaml, partialDataBaml]);
 
@@ -80,8 +80,8 @@ const ExtractifyComponent: React.FC<{
       {runAllError && <p className="text-red-500">{runAllError}</p>}
       <Tabs className="w-full" value={activeTab} onValueChange={setActiveTab} >
         <TabsList>
-          <TabsTrigger value="schema">{ isLoadingBaml && <ClipLoader size={12} />} 🐑 BAML Schema </TabsTrigger>
-          <TabsTrigger value="data">{ isLoadingJson ? <ClipLoader size={12} /> : "🤯" } Extractify!</TabsTrigger>
+          <TabsTrigger value="schema">{ isLoadingBaml && !(isCompleteBaml || isErrorBaml) && <ClipLoader size={12} />} 🐑 BAML Schema </TabsTrigger>
+          <TabsTrigger value="data">{ isLoadingJson && !(isCompleteJson || isErrorJson) ? <ClipLoader size={12} /> : "🤯" } Extractify!</TabsTrigger>
         </TabsList>
         <TabsContent value="schema">
           <CodeMirrorViewer lang="baml" file_content={

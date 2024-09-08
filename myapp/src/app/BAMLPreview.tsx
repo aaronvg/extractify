@@ -65,7 +65,7 @@ export const CodeMirrorViewer = ({
   onChange?: (value: string) => void;
 }) => {
   return (
-    <div className="w-full max-h-[700px] h-full overflow-y-clip rounded-md">
+    <div className="w-full max-h-[700px] h-full overflow-y-auto rounded-md">
       <div
         className="relative"
         style={{

@@ -20,6 +20,13 @@ import { CodeMirrorViewer } from "./BAMLPreview";
 export default function Home() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+import { useState, useCallback, useEffect } from 'react';
+import { WideCardFileUpload } from "@/components/wide-card-file-upload";
+import PdfToImageConverter from "@/components/PdfToImageConverter";
+
+export default function Home() {
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const handleFileUpload = useCallback((file: File | null) => {
     setUploadedFile(file);
@@ -31,43 +38,42 @@ export default function Home() {
     } else {
       console.log("File removed");
       setPreviewUrl(null);
+      console.log('File uploaded:', file.name, 'Size:', file.size, 'bytes');
+      if (file.type === 'application/pdf') {
+        const url = URL.createObjectURL(file);
+        setPdfUrl(url);
+      } else {
+        setPdfUrl(null);
+      }
+    } else {
+      console.log('File removed');
+      setPdfUrl(null);
     }
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [pdfUrl]);
+
   return (
     <Provider store={atomStore}>
-      <div className="w-full max-w-6xl mx-auto">
-        <WideCardFileUpload onFileChange={handleFileUpload} />
-        {uploadedFile && (
-          <p className="mt-4 text-center text-sm text-gray-600">
-            File "{uploadedFile.name}" uploaded successfully!
-          </p>
-        )}
-        {uploadedFile && (
-          <div className="mt-8 flex gap-8">
-            <div className="w-1/2">
-              {previewUrl && (
-                <Image
-                  src={previewUrl}
-                  alt="Uploaded file preview"
-                  width={500}
-                  height={700}
-                  style={{
-                    objectFit: "contain",
-                    width: "100%",
-                    height: "auto",
-                  }}
-                  // placeholder color: not sure why it's not rendering yet.
-                  className="rounded-md bg-red-700"
-                />
-              )}
-            </div>
-            <div className="w-1/2">
-              <RightPanel base64={previewUrl ?? ""} />
-            </div>
-          </div>
-        )}
-      </div>
+    <div className="w-full max-w-md mx-auto">
+      <WideCardFileUpload onFileChange={handleFileUpload} />
+      {uploadedFile && (
+        <p className="mt-4 text-center text-sm text-gray-600">
+          File "{uploadedFile.name}" uploaded successfully!
+        </p>
+      )}
+      {pdfUrl && (
+        <div className="mt-4">
+          <PdfToImageConverter pdfUrl={pdfUrl} />
+        </div>
+      )}
+    </div>
     </Provider>
   );
 }

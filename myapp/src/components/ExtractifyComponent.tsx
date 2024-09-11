@@ -120,51 +120,35 @@ const ExtractifyComponent: React.FC<{
           </TabsTrigger>
         </TabsList>
         <TabsContent value="schema">
-          {
-            !isLoadingBaml && bamlCode && (
-              <Button onClick={runExtract} className="mb-2">
-                <PlayCircleIcon className="mr-2" />
-              </Button>
-            )
-          }
+          {!isLoadingBaml && bamlCode && (
+            <Button onClick={runExtract} className="mb-2">
+              <PlayCircleIcon className="mr-2" />
+            </Button>
+          )}
           <CodeMirrorViewer
             lang="baml"
             file_content={bamlCode}
-<<<<<<< HEAD
-            onChange={isCompleteBaml || isErrorBaml ? (val) => {
-              setBamlCode(val)
-              setFileAtom(val)
-             } : () => { }}
-=======
-            onChange={isCompleteBaml || isErrorBaml ? setBamlCode : () => {}}
->>>>>>> 23375ab (add webcam)
+            onChange={
+              isCompleteBaml || isErrorBaml
+                ? (val) => {
+                    setBamlCode(val);
+                    setFileAtom(val);
+                  }
+                : () => {}
+            }
             shouldScrollDown={!isCompleteBaml && !isErrorBaml}
           />
         </TabsContent>
         <TabsContent value="data">
-
-        <div className="mb-2">
-              <Button onClick={() => setShowRawJson(!showRawJson)}>
-                {showRawJson ? "Show JSON Grid" : "Show Raw JSON"}
-              </Button>
-            </div>
+          <div className="mb-2">
+            <Button onClick={() => setShowRawJson(!showRawJson)}>
+              {showRawJson ? "Show JSON Grid" : "Show Raw JSON"}
+            </Button>
+          </div>
           <div className="demo-container w-full">
-<<<<<<< HEAD
             {isLoadingJson && !(isCompleteJson || isErrorJson) && (
-              <><p>Extracting data using schema...</p>
-=======
-            {isLoadingJson && !(isCompleteJson || isErrorJson) ? (
               <>
                 <p>Extracting data using schema...</p>
-                {partialDataJson && (
-                  <JSONGrid
-                    className="text-sm"
-                    theme="defaultLight"
-                    defaultExpandDepth={10}
-                    data={partialDataJson}
-                  />
-                )}
->>>>>>> 23375ab (add webcam)
               </>
             )}
             {showRawJson ? (

@@ -42,6 +42,7 @@
     "react-json-grid": "link:@types/@redheadphone/react-json-grid",
     "react-pdf": "^9.1.0",
     "react-spinners": "^0.14.1",
+    "react-webcam": "^7.2.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "xlsx": "^0.18.5",

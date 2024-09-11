@@ -7,6 +7,7 @@ import {
   FileImage,
   File as FileIcon,
   Music,
+  Camera,
 } from "lucide-react";
 
 import exampleFiles from "@/examples";
@@ -28,6 +29,8 @@ const Header: React.FC<HeaderProps> = ({ onFileSelect, selectedFile }) => {
     if (type.includes("sheet")) return <FileSpreadsheet className="w-6 h-6" />;
     if (type.includes("image")) return <FileImage className="w-6 h-6" />;
     if (type.includes("audio")) return <Music className="w-6 h-6" />;
+    // webcame
+    if (type.includes("webcam")) return <Camera className="w-6 h-6" />;
     return <FileIcon className="w-6 h-6" />;
   };
 
@@ -37,6 +40,7 @@ const Header: React.FC<HeaderProps> = ({ onFileSelect, selectedFile }) => {
     if (type.includes("image")) return "bg-blue-100 text-blue-600";
     if (type.includes("audio")) return "bg-purple-100 text-purple-600";
     if (type.includes("document")) return "bg-yellow-100 text-yellow-600";
+    if (type.includes("webcam")) return "bg-gray-100 text-gray-600";
     return "bg-gray-100 text-gray-600";
   };
 

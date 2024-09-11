@@ -11,11 +11,10 @@ import { CodeMirrorViewer } from "@/app/BAMLPreview";
 import { unstable_noStore } from "next/cache";
 import { ClipLoader } from "react-spinners";
 import JSONGrid from "@redheadphone/react-json-grid";
-import { useSetAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { filesAtom } from "@/app/atoms";
 import { Button } from "./ui/button";
 import { PlayCircleIcon } from "lucide-react";
-
 
 const ExtractifyComponent: React.FC<{
   content: string;
@@ -112,8 +111,10 @@ const ExtractifyComponent: React.FC<{
           <TabsTrigger value="data">
             {isLoadingJson && !(isCompleteJson || isErrorJson) ? (
               <ClipLoader size={12} />
+            ) : isCompleteJson ? (
+              "🤯"
             ) : (
-              isCompleteJson ? "🤯" : ""
+              ""
             )}{" "}
             Extractify!
           </TabsTrigger>
@@ -129,10 +130,14 @@ const ExtractifyComponent: React.FC<{
           <CodeMirrorViewer
             lang="baml"
             file_content={bamlCode}
+<<<<<<< HEAD
             onChange={isCompleteBaml || isErrorBaml ? (val) => {
               setBamlCode(val)
               setFileAtom(val)
              } : () => { }}
+=======
+            onChange={isCompleteBaml || isErrorBaml ? setBamlCode : () => {}}
+>>>>>>> 23375ab (add webcam)
             shouldScrollDown={!isCompleteBaml && !isErrorBaml}
           />
         </TabsContent>
@@ -144,8 +149,22 @@ const ExtractifyComponent: React.FC<{
               </Button>
             </div>
           <div className="demo-container w-full">
+<<<<<<< HEAD
             {isLoadingJson && !(isCompleteJson || isErrorJson) && (
               <><p>Extracting data using schema...</p>
+=======
+            {isLoadingJson && !(isCompleteJson || isErrorJson) ? (
+              <>
+                <p>Extracting data using schema...</p>
+                {partialDataJson && (
+                  <JSONGrid
+                    className="text-sm"
+                    theme="defaultLight"
+                    defaultExpandDepth={10}
+                    data={partialDataJson}
+                  />
+                )}
+>>>>>>> 23375ab (add webcam)
               </>
             )}
             {showRawJson ? (
@@ -166,5 +185,76 @@ const ExtractifyComponent: React.FC<{
     </div>
   );
 };
+
+const createRuntime = (
+  wasm: typeof import("@gloo-ai/baml-schema-wasm-web"),
+  envVars: Record<string, string>,
+  project_files: Record<string, string>
+) => {
+  const project = wasm.WasmProject.new("baml_src", project_files);
+
+  let rt = undefined;
+  let diag = undefined;
+  try {
+    rt = project.runtime(envVars);
+    diag = project.diagnostics(rt);
+  } catch (e) {
+    const WasmDiagnosticError = wasm.WasmDiagnosticError;
+    if (e instanceof Error) {
+      console.error(e.message);
+    } else if (e instanceof WasmDiagnosticError) {
+      diag = e;
+    } else {
+      console.error(e);
+    }
+  }
+
+  return {
+    project,
+    runtime: rt,
+    diagnostics: diag,
+  };
+};
+
+function BAMLSchema() {
+  // const [projectFiles, setProjectFiles] = useAtom(filesAtom);
+  // const wasm = useAtomValue(wasmAtom);
+  // const [diagnostics, setDiagnostics] = useAtom(diagnosticsAtom);
+  // const createRuntimeCb = useAtomCallback(
+  //   useCallback(
+  //     (get, set, wasm: typeof import("@gloo-ai/baml-schema-wasm-web")) => {
+  //       const {
+  //         project,
+  //         runtime,
+  //         diagnostics: diags,
+  //       } = createRuntime(
+  //         wasm,
+  //         { ANTHROPIC_API_KEY: "test", OPENAI_API_KEY: "test" },
+  //         projectFiles
+  //       );
+  //       // set(projectAtom, project);
+  //       // set(runtimesAtom, {
+  //       //   last_successful_runtime: undefined,
+  //       //   current_runtime: runtime,
+  //       //   diagnostics: diags,
+  //       // });
+  //       // console.log("runtime created" + diagnostics?.errors());
+  //       setDiagnostics(diags?.errors() ?? []);
+  //     },
+  //     [wasm, projectFiles, runtimesAtom, projectAtom]
+  //   )
+  // );
+  // useEffect(() => {
+  //   if (wasm) {
+  //     createRuntimeCb(wasm);
+  //   }
+  // }, [wasm, JSON.stringify(projectFiles)]);
+  // return (
+  //   <>
+  //     {/* {runtime && <>diagnostics ready</>} */}
+  //     {/* {diagnostics && <> ({diagnostics.length} errors)</>} */}
+  //   </>
+  // );
+}
 
 export default ExtractifyComponent;

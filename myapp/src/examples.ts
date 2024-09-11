@@ -18,6 +18,9 @@ const exampleFiles = [
     { name: 'restaurant.png', type: 'image/png', url: '/examples/restaurant.png' },
     { name: 'techcrunch_pitchdeck.xlsx', type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', url: '/examples/techcrunch_pitchdeck.xlsx' },
     { name: 'Untitled_document.docx', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', url: '/examples/Untitled_document.docx' },
+    { name: 'webcam', type: 'webcam', url: '/examples/webcam' },
+
+
 ]
 
 export default exampleFiles

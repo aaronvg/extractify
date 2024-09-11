@@ -31,6 +31,9 @@ import DocxToImageConverter from "@/components/DocxToImageConverter";
 import ExtractifyComponent from "./ExtractifyComponent";
 import Header from "@/components/Header";
 import exampleFiles from "@/examples";
+import WebcamFeed from "@/components/WebcamFeed";
+import { captureWebcamImage } from "@/utils/webcam";
+import Webcam from "react-webcam";
 // import { ExampleFile } from '../types/file-types'
 
 const getSuggestions = (fileType: string) => {
@@ -98,6 +101,7 @@ export function ExtractifyChat() {
   const [selectedFile, setSelectedFile] = useState<any | null>(null);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const webcamRef = useRef<Webcam>(null);
 
   useEffect(() => {
     if ("SpeechRecognition" in window || "webkitSpeechRecognition" in window) {
@@ -219,53 +223,9 @@ export function ExtractifyChat() {
     return convertedImage;
   };
 
-  const handleFileSelect = useCallback(async (selectedFile: any) => {
-    setSelectedFile(selectedFile);
-    setFile(null);
-    setConvertedImageUrl(null);
-    setIsConverting(true);
-
-    try {
-      console.log("selectedFile", selectedFile);
-      console.log("selectedFile.url", selectedFile.url);
-      const response = await fetch(selectedFile.url);
-      console.log("response", response);
-      if (!response.ok) throw new Error("Network response was not ok");
-      const blob = await response.blob();
-      const file = new File([blob], selectedFile.name, {
-        type: selectedFile.type,
-      });
-      await handleFile(file, selectedFile.url);
-    } catch (error) {
-      console.error("Error loading example file:", error);
-      setIsConverting(false);
-    }
-  }, []);
-
-  const getBase64ImageFromPath = async (imagePath: string): Promise<string> => {
-    if (imagePath.startsWith("data:")) {
-      // It's already a base64 string
-      return imagePath;
-    } else {
-      // It's a path, fetch the image and convert to base64
-      console.log("imagePath", imagePath);
-      const response = await fetch(imagePath);
-      const blob = await response.blob();
-      return new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === "string") {
-            resolve(reader.result);
-          } else {
-            reject(new Error("Failed to convert image to base64"));
-          }
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    }
-  };
-
+  useEffect(() => {
+    console.log("ssssssselectedFile", selectedFile?.type);
+  }, [selectedFile]);
   const handleFile = useCallback(
     async (uploadedFile: File, uploadedFileUrl?: string) => {
       setFile(uploadedFile);
@@ -297,6 +257,67 @@ export function ExtractifyChat() {
     []
   );
 
+  const handleFileSelect = useCallback(
+    async (selectedFile: { name: string; type: string; url: string }) => {
+      console.log("handleFileSelect called with:", selectedFile);
+      setSelectedFile(selectedFile);
+      setFile(null);
+      setConvertedImageUrl(null);
+      setIsConverting(true);
+
+      if (selectedFile.type === "webcam") {
+        console.log("Webcam selected");
+        setIsConverting(false);
+        // set to a fake file
+        const fakeFile = new File([], "webcam", { type: "image/png" });
+        await handleFile(fakeFile, "webcam");
+        return;
+      }
+
+      try {
+        const response = await fetch(selectedFile.url);
+        if (!response.ok) throw new Error("Network response was not ok");
+        const blob = await response.blob();
+        const file = new File([blob], selectedFile.name, {
+          type: selectedFile.type,
+        });
+        await handleFile(file, selectedFile.url);
+      } catch (error) {
+        console.error("Error loading file:", error);
+        setIsConverting(false);
+      }
+    },
+    [handleFile]
+  );
+
+  useEffect(() => {
+    console.log("selectedFile updated:", selectedFile);
+  }, [selectedFile]);
+
+  const getBase64ImageFromPath = async (imagePath: string): Promise<string> => {
+    if (imagePath.startsWith("data:")) {
+      // It's already a base64 string
+      return imagePath;
+    } else {
+      // It's a path, fetch the image and convert to base64
+      console.log("imagePath", imagePath);
+      const response = await fetch(imagePath);
+      const blob = await response.blob();
+      return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === "string") {
+            resolve(reader.result);
+          } else {
+            reject(new Error("Failed to convert image to base64"));
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+  };
+
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       handleFile(e.target.files[0]);
@@ -308,10 +329,18 @@ export function ExtractifyChat() {
     setConvertedImageUrl(null);
   };
 
-  const handleExtract = () => {
-    if (convertedImageUrl) {
+  const handleExtract = async () => {
+    let imageData = convertedImageUrl;
+    if (selectedFile?.type === "webcam") {
+      const capturedImage = await captureWebcamImage(webcamRef);
+      if (capturedImage) {
+        imageData = capturedImage;
+      }
+    }
+
+    if (imageData) {
       setMessages((prev) => [
-        { text: input, data: convertedImageUrl, schema: "image/png" },
+        { text: input, data: imageData, schema: "image/png" },
         // ...prev,
       ]);
       setInput("");
@@ -328,12 +357,19 @@ export function ExtractifyChat() {
   };
 
   const renderPreview = () => {
+    console.log("renderPreview called, selectedFile:", selectedFile);
+
     if (isConverting) {
       return (
         <div className="flex items-center justify-center h-full text-gray-500">
           <span>Converting...</span>
         </div>
       );
+    }
+
+    if (selectedFile?.type === "webcam") {
+      console.log("Rendering webcam feed");
+      return <WebcamFeed ref={webcamRef} />;
     }
 
     if (convertedImageUrl) {

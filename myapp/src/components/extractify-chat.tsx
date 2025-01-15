@@ -34,7 +34,7 @@ import exampleFiles from "@/examples";
 import WebcamFeed from "@/components/WebcamFeed";
 import { captureWebcamImage } from "@/utils/webcam";
 import Webcam from "react-webcam";
-// import { ExampleFile } from '../types/file-types'
+import { set } from "react-hook-form";
 
 const getSuggestions = (fileType: string) => {
   switch (fileType) {
@@ -101,6 +101,7 @@ export function ExtractifyChat() {
   const [selectedFile, setSelectedFile] = useState<any | null>(null);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const [webcamSnapshot, setWebcamSnapshot] = useState<string | null>(null);
   const webcamRef = useRef<Webcam>(null);
 
   useEffect(() => {
@@ -118,7 +119,7 @@ export function ExtractifyChat() {
         setInput(transcript);
       };
     }
-  }, []);
+  }, []);  
 
   useEffect(() => {
     if (isListening) {
@@ -335,7 +336,10 @@ export function ExtractifyChat() {
       const capturedImage = await captureWebcamImage(webcamRef);
       if (capturedImage) {
         imageData = capturedImage;
+        setWebcamSnapshot(capturedImage);
       }
+    } else {
+      setWebcamSnapshot(null);
     }
 
     if (imageData) {
@@ -369,7 +373,16 @@ export function ExtractifyChat() {
 
     if (selectedFile?.type === "webcam") {
       console.log("Rendering webcam feed");
-      return <WebcamFeed ref={webcamRef} />;
+      return <div className="flex flex-col gap-1">
+        {webcamSnapshot && (
+          <img
+            src={webcamSnapshot}
+            alt="Webcam Snapshot"
+            className="max-w-full h-auto"
+          />
+        )}
+        <WebcamFeed ref={webcamRef} />
+      </div>;
     }
 
     if (convertedImageUrl) {

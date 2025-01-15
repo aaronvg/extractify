@@ -13,6 +13,9 @@ client<llm> Claude {
   options {
     model "claude-3-5-sonnet-20240620"
     api_key env.ANTHROPIC_API_KEY
+    headers {
+      "anthropic-dangerous-direct-browser-access" "true"
+    }
   }
 }
 
@@ -46,6 +49,6 @@ client<llm> Openai {
   options {
     // This will try the clients in order until one succeeds
     // Learn more at https://docs.boundaryml.com/docs/snippets/clients/fallback
-    strategy [GPT4, FastOpenAI]
+    strategy ["openai/gpt-4o", FastOpenAI]
   }
 }

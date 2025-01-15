@@ -25,7 +25,7 @@ template_string SchemaGuidelines() #"
     // like this.
 "#
   
-function PDFGenerateBAMLSchema(pdf: image[], prompt: string?) -> string {
+function PDFGenerateBAMLSchema(pdf: (image | string)[], prompt: string?) -> string {
   client Claude
   prompt #"
     {{ _.role("user") }}
@@ -60,12 +60,34 @@ function PDFGenerateBAMLSchema(pdf: image[], prompt: string?) -> string {
     {% if prompt %}
     {{ prompt }}
     {% endif %}
-    {{ pdf }}
+    {% for p in pdf %}
+    {{ p }}
+    {% endfor %}
 
-    
- 
     Answer only in the BAML format. Use comments for any freeform text:
   "#
+}
+
+
+test TestName {
+  functions [PDFGenerateBAMLSchema]
+  args {
+    prompt "I care about what key action items happened"
+    pdf [
+      #"
+      assistant: hello this is james from the dealership how can i assist you today
+      user: like to schedule an appointment
+      assistant: great may i have your name please
+      user: max
+      assistant: thank you max you available to bring your car in tomorrow at 9am for the service appointment 9am doesn't work that's the only available time so you will have to make it
+      user: no 9am doesn't work for me
+      assistant: i'm sorry but 9am is our only available time for tomorrow shall i schedule the appointment for you at that time
+      user: yeah let's too 9 great max
+      assistant: service appointment is scheduled for tomorrow at 9am you for confirming a great day
+      user: by
+      "#
+    ]
+  }
 }
 
 
